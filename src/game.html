@@ -143,9 +143,34 @@ textarea { min-height: 80px; font-size: 12px; font-family: ui-monospace, Menlo, 
 .toasts { position: fixed; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 10px); z-index: 60; display: grid; justify-items: center; gap: 6px; pointer-events: none; padding: 0 16px; }
 .toast { max-width: 420px; background: var(--deck); border: 1px solid var(--brass); color: var(--text); padding: 9px 14px; border-radius: 12px; font-weight: 600; font-size: 14px; box-shadow: 0 8px 24px #000a; animation: tin .25s ease-out; text-align: center; }
 .toast b { color: var(--brass); }
+.update-banner { position: fixed; z-index: 70; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 70px); width: min(440px, calc(100% - 32px)); padding: 12px 14px; border-radius: 12px; border: 0; background: var(--brass); color: var(--brass-ink); font-weight: 700; font-size: 14px; line-height: 1.35; box-shadow: 0 10px 30px #000b; }
+input[type="range"] { width: 100%; accent-color: var(--brass); }
 @keyframes tin { from { transform: translateY(-12px); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .toast { animation: none; } .capfill { transition: none; } }
 @media (min-height: 820px) { .stage { height: clamp(220px, 36vh, 360px); } }
+
+/* ---------- desktop / tablet landscape: base map left, command panel right ---------- */
+@media (min-width: 960px) and (min-height: 560px) {
+  #app {
+    max-width: 1280px; display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(380px, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas: "top panel" "stage panel" "stage tabs";
+    border-inline: 1px solid var(--rail);
+  }
+  .top { grid-area: top; padding-block: 18px 12px; }
+  .money { font-size: 48px; }
+  .stage { grid-area: stage; height: auto; border-bottom: 0; }
+  .panel { grid-area: panel; border-left: 1px solid var(--rail); padding-block: 16px 24px; }
+  .tabs { grid-area: tabs; border-left: 1px solid var(--rail); }
+  .hint { font-size: 13px; bottom: 14px; }
+}
+@media (hover: hover) and (pointer: fine) {
+  .buy:not(:disabled):hover, .btn:hover, .buymode button:hover { filter: brightness(1.12); }
+  .tabs button:hover { color: var(--text); }
+  #map { cursor: pointer; }
+}
+.kbd { display: inline-block; padding: 0 5px; border: 1px solid currentColor; border-radius: 4px; font-size: .9em; }
 </style>
 
 <div id="app">
@@ -192,6 +217,7 @@ textarea { min-height: 80px; font-size: 12px; font-family: ui-monospace, Menlo, 
 
 <div class="modal" id="modal" hidden><div class="modal-card" id="modalCard"></div></div>
 <div class="toasts" id="toasts"></div>
+<button class="update-banner" id="updateBanner" type="button" hidden>📨 New orders from HQ: an update is ready. Tap to install. Your progress is kept.</button>
 
 <script id="core">
 /* ===== Pure game logic: no DOM. Shared by the app and the balance simulator. ===== */
@@ -314,7 +340,7 @@ var Core = (function () {
       v: 1, money: 0, runEarned: 0, allEarned: 0, runGrads: 0, allGrads: 0,
       fac: {}, house: 1, ups: {}, stars: 0, taps: 0, mailCalls: 0, ach: {}, prestiges: 0,
       boosts: [], played: 0, runPlayed: 0, last: Date.now(), nextMail: 40,
-      settings: { sound: true, haptics: true }, baseName: 'RTC Lakeside', buyMode: 1, seenIntro: false
+      settings: { sound: true, haptics: true, music: true, musicVol: 0.6 }, baseName: 'RTC Lakeside', buyMode: 1, seenIntro: false, seenVersion: ''
     };
   }
 
@@ -465,13 +491,210 @@ if (typeof module !== 'undefined') module.exports = Core;
     return null;
   }
 
-  /* ---------- sound + haptics ---------- */
+  /* ---------- version + changelog (shown once after an update) ---------- */
+  var GAME_VERSION = '1.1.0';
+  var CHANGELOG = 'New: a Navy soundtrack with 5 tracks, plus in-app updates. Your progress carried over.';
+
+  /* ---------- shared audio context ---------- */
   var actx = null;
+  function audio() {
+    if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
+    if (actx.state === 'suspended' && !document.hidden) { try { actx.resume(); } catch (e) {} }
+    return actx;
+  }
+
+  /* ---------- soundtrack: a small step sequencer synthesizing every note live ---------- */
+  var Music = (function () {
+    var SEMI = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+    function freq(n) {
+      var m = /^([A-G])([#b]?)(\d)$/.exec(n); if (!m) return 0;
+      var midi = (+m[3] + 1) * 12 + SEMI[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0);
+      return 440 * Math.pow(2, (midi - 69) / 12);
+    }
+    // "C5:4 R:2 E5:2" -> notes with start/length in 16th-note steps
+    function line(str) {
+      var out = [], t = 0;
+      str.trim().split(/\s+/).forEach(function (tok) {
+        var p = tok.split(':'), len = +p[1] || 1;
+        if (p[0] !== 'R') out.push({ f: freq(p[0]), s: t, l: len });
+        t += len;
+      });
+      return { notes: out, len: t };
+    }
+    var CHORD = {
+      C: ['C4', 'E4', 'G4'], Dm: ['D4', 'F4', 'A4'], D: ['D4', 'F#4', 'A4'], Em: ['E4', 'G4', 'B4'], F: ['F4', 'A4', 'C5'],
+      G: ['G3', 'B3', 'D4'], Am: ['A3', 'C4', 'E4'], B: ['B3', 'D#4', 'F#4']
+    };
+    var ROOT = { C: ['C3', 'G2'], Dm: ['D3', 'A2'], D: ['D3', 'A2'], Em: ['E2', 'B2'], F: ['F2', 'C3'], G: ['G2', 'D3'], Am: ['A2', 'E3'], B: ['B2', 'F#2'] };
+    function up(n) { return n.slice(0, -1) + (+n.slice(-1) + 1); }
+    // Bass line from a chord-per-bar list. "C/Dm" splits a bar in half.
+    function bassFrom(chords, style) {
+      var out = [];
+      chords.trim().split(/\s+/).forEach(function (tok) {
+        var halves = tok.split('/'), steps = 16 / halves.length;
+        halves.forEach(function (c) {
+          var r = ROOT[c][0], f = ROOT[c][1], seq;
+          if (style === 'march') seq = [r + ':4', f + ':4', r + ':4', f + ':4'];
+          else if (style === 'oompah') seq = [r + ':2', f + ':2', r + ':2', f + ':2', r + ':2', f + ':2', r + ':2', f + ':2'];
+          else if (style === 'walk') seq = [r + ':2', up(r) + ':2', f + ':2', up(r) + ':2', r + ':2', up(r) + ':2', f + ':2', up(r) + ':2'];
+          else if (style === 'drive') seq = [r + ':2', r + ':2', up(r) + ':2', r + ':2', r + ':2', r + ':2', up(r) + ':2', r + ':2'];
+          else seq = [r + ':8', f + ':8'];
+          var take = [], used = 0;
+          for (var i = 0; i < seq.length && used < steps; i++) { take.push(seq[i]); used += +seq[i].split(':')[1]; }
+          out = out.concat(take);
+        });
+      });
+      return out.join(' ');
+    }
+
+    var TRACKS = [
+      { name: 'Grinder March', note: 'Original', bpm: 116, lead: 'square', leadVol: 0.055, cutoff: 2400, loops: 2,
+        melody: 'C5:4 C5:2 D5:2 E5:4 C5:4  G5:6 E5:2 C5:8  D5:4 D5:2 E5:2 F5:4 D5:4  A5:6 F5:2 D5:8 ' +
+                'E5:4 G5:2 E5:2 C5:4 E5:4  F5:4 A5:2 F5:2 D5:4 F5:4  G5:4 F5:2 E5:2 D5:4 B4:4  C5:8 G4:4 C5:4 ' +
+                'A5:4 A5:2 G5:2 F5:4 C5:4  D5:4 F5:4 A5:8  G5:4 G5:2 F5:2 E5:4 C5:4  E5:4 G5:4 C6:8 ' +
+                'A5:4 C6:2 A5:2 F5:4 A5:4  G5:4 E5:2 G5:2 C6:4 G5:4  F5:4 E5:2 D5:2 G5:4 B4:4  C5:12 R:4',
+        chords: 'C C G Dm C F G C F Dm C C F C G C', bass: 'march',
+        drums: { kick: 'x.......x.......', snare: 'x...x.xxx...x.x.', fill: 'x.x.x.x.xxxxxxxx' } },
+      { name: 'Drunken Sailor', note: 'Traditional sea shanty', bpm: 120, lead: 'square', leadVol: 0.05, cutoff: 2800, loops: 3,
+        melody: 'A4:2 A4:1 A4:1 A4:2 A4:1 A4:1 A4:2 D4:2 F4:2 A4:2  G4:2 G4:1 G4:1 G4:2 G4:1 G4:1 G4:2 C4:2 E4:2 G4:2 ' +
+                'A4:2 A4:1 A4:1 A4:2 A4:1 A4:1 A4:2 B4:2 C5:2 D5:2  C5:2 A4:2 G4:2 E4:2 D4:4 D4:4 ' +
+                'A4:4 A4:4 A4:2 D4:2 F4:2 A4:2  G4:4 G4:4 G4:2 C4:2 E4:2 G4:2  A4:4 A4:4 A4:2 B4:2 C5:2 D5:2  C5:2 A4:2 G4:2 E4:2 D4:4 D4:4',
+        chords: 'Dm C Dm C/Dm Dm C Dm C/Dm', bass: 'oompah',
+        drums: { kick: 'x...x...x...x...', snare: '....x.......x...', hat: '..x...x...x...x.', fill: '....x.......xxxx' } },
+      { name: 'Liberty Call', note: 'Original', bpm: 126, lead: 'square', leadVol: 0.045, cutoff: 2200, loops: 2, arp: true,
+        melody: 'G4:2 B4:2 D5:2 B4:2 G5:4 D5:4  E5:2 G5:2 E5:2 B4:2 E5:8  C5:2 E5:2 G5:2 E5:2 C6:4 G5:4  A5:2 F#5:2 D5:2 F#5:2 A5:6 R:2 ' +
+                'B5:4 A5:2 G5:2 D5:4 B4:4  E5:4 F#5:2 G5:2 B5:4 G5:4  A5:2 G5:2 E5:2 C5:2 D5:2 E5:2 F#5:4  D5:12 R:4 ' +
+                'E5:4 G5:4 C6:4 B5:2 A5:2  F#5:4 A5:4 D6:4 C6:2 A5:2  B5:2 A5:2 G5:2 D5:2 B4:2 D5:2 G5:4  E5:4 B4:4 E5:4 G5:4 ' +
+                'C6:4 B5:2 A5:2 G5:4 E5:4  F#5:2 G5:2 A5:2 F#5:2 D5:8  G5:4 D5:2 B4:2 G4:4 B4:4  G4:8 R:8',
+        chords: 'G Em C D G Em C D C D G Em C D G G', bass: 'walk',
+        drums: { kick: 'x.....x.x.......', snare: '....x.......x...', hat: '..x...x...x...x.', fill: '....x.....x.xxxx' } },
+      { name: 'Battle Stations', note: 'Original', bpm: 138, lead: 'sawtooth', leadVol: 0.04, cutoff: 1900, loops: 2,
+        melody: 'E5:2 E5:2 B4:2 E5:2 G5:4 F#5:2 E5:2  D5:2 E5:2 F#5:2 G5:2 A5:4 G5:4  G5:2 E5:2 C5:2 E5:2 G5:4 A5:2 G5:2  F#5:2 D5:2 A4:2 D5:2 F#5:4 A5:4 ' +
+                'B5:4 A5:2 G5:2 F#5:4 E5:4  G5:2 F#5:2 E5:2 D5:2 E5:4 B4:4  C5:2 E5:2 G5:2 C6:2 B5:4 A5:4  B5:4 F#5:4 D#5:4 B4:4',
+        chords: 'Em Em C D Em Em C B', bass: 'drive',
+        drums: { kick: 'x...x...x...x...', snare: '....x.......x...', hat: 'x.x.x.x.x.x.x.x.', fill: '....x...x.x.xxxx' } },
+      { name: 'Mid Watch', note: 'Original', bpm: 80, lead: 'triangle', leadVol: 0.1, cutoff: 3000, loops: 2, arp: true,
+        melody: 'E5:8 C5:4 A4:4  F5:8 C5:4 A4:4  G5:8 E5:4 C5:4  D5:12 B4:4  A4:4 C5:4 E5:4 A5:4  G5:4 F5:4 C5:8  E5:4 D5:4 C5:4 E5:4  D5:16',
+        chords: 'Am F C G Am F C G', bass: 'long',
+        drums: { kick: 'x.......x.......', hat: '....o.......o...' } }
+    ];
+
+    var compiled = TRACKS.map(function (tr) {
+      var m = line(tr.melody), b = line(bassFrom(tr.chords, tr.bass)), bars = Math.ceil(m.len / 16), ev = [];
+      var chords = tr.chords.trim().split(/\s+/);
+      m.notes.forEach(function (n) { ev.push({ s: n.s, k: 'lead', f: n.f, l: n.l }); });
+      b.notes.forEach(function (n) { ev.push({ s: n.s, k: 'bass', f: n.f, l: n.l }); });
+      for (var bar = 0; bar < bars; bar++) {
+        var fill = tr.drums.fill && bar % 8 === 7;
+        ['kick', 'snare', 'hat'].forEach(function (k) {
+          var pat = k === 'snare' && fill ? tr.drums.fill : tr.drums[k];
+          if (!pat) return;
+          for (var i = 0; i < 16; i++) if (pat[i] === 'x' || pat[i] === 'o') ev.push({ s: bar * 16 + i, k: k, soft: pat[i] === 'o' });
+        });
+        if (tr.arp) {
+          var halves = chords[bar].split('/');
+          for (var i2 = 0; i2 < 16; i2 += 2) {
+            var ch = CHORD[halves[Math.floor(i2 / (16 / halves.length))]];
+            ev.push({ s: bar * 16 + i2, k: 'arp', f: freq(up(ch[[0, 1, 2, 1][(i2 / 2) % 4]])), l: 2 });
+          }
+        }
+      }
+      ev.sort(function (a, z) { return a.s - z.s; });
+      return { ev: ev, len: bars * 16 };
+    });
+
+    var idx = 0, cur = null, startT = 0, ei = 0, timer = null, out = null, playing = false, vol = 0.6, noise = null, listener = null;
+
+    function noiseBuf(a) {
+      if (noise) return noise;
+      noise = a.createBuffer(1, a.sampleRate, a.sampleRate);
+      var d = noise.getChannelData(0);
+      for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      return noise;
+    }
+    function hit(a, t, hp, v, decay) {
+      var src = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+      src.buffer = noiseBuf(a); f.type = 'highpass'; f.frequency.value = hp;
+      g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+      src.connect(f); f.connect(g); g.connect(out); src.start(t, Math.random() * 0.5); src.stop(t + decay + 0.02);
+    }
+    function play(x, t) {
+      var a = actx, tr = cur.tr, sd = cur.sd;
+      if (x.k === 'kick') {
+        var o = a.createOscillator(), g = a.createGain();
+        o.type = 'sine'; o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.14);
+        g.gain.setValueAtTime(0.32, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+        o.connect(g); g.connect(out); o.start(t); o.stop(t + 0.18);
+      } else if (x.k === 'snare') {
+        hit(a, t, 1400, x.soft ? 0.035 : 0.09, 0.12);
+      } else if (x.k === 'hat') {
+        hit(a, t, 7000, x.soft ? 0.02 : 0.03, 0.035);
+      } else {
+        var osc = a.createOscillator(), gn = a.createGain(), fl = a.createBiquadFilter();
+        var v = x.k === 'lead' ? tr.leadVol : x.k === 'bass' ? 0.15 : 0.03;
+        var hold = Math.max(0.04, x.l * sd * (x.k === 'lead' ? 0.82 : 0.9));
+        osc.type = x.k === 'lead' ? tr.lead : 'triangle';
+        osc.frequency.setValueAtTime(x.f, t);
+        if (x.k === 'lead' && x.l >= 6) { // gentle vibrato on held notes
+          var lfo = a.createOscillator(), lg = a.createGain();
+          lfo.frequency.value = 5.5; lg.gain.value = x.f * 0.006;
+          lfo.connect(lg); lg.connect(osc.frequency); lfo.start(t + 0.15); lfo.stop(t + hold + 0.1);
+        }
+        fl.type = 'lowpass'; fl.frequency.value = x.k === 'lead' ? tr.cutoff : 1800;
+        gn.gain.setValueAtTime(0.0001, t);
+        gn.gain.linearRampToValueAtTime(v, t + 0.012);
+        gn.gain.exponentialRampToValueAtTime(v * 0.55, t + hold);
+        gn.gain.linearRampToValueAtTime(0.0001, t + hold + 0.05);
+        osc.connect(fl); fl.connect(gn); gn.connect(out); osc.start(t); osc.stop(t + hold + 0.08);
+      }
+    }
+    function load(i, t) {
+      idx = i; cur = { tr: TRACKS[i], c: compiled[i], sd: 60 / TRACKS[i].bpm / 4, loop: 0 };
+      startT = t; ei = 0;
+      if (listener) listener(TRACKS[i]);
+    }
+    function pump() {
+      var a = actx; if (!a || !playing || a.state !== 'running') return;
+      var ahead = a.currentTime + 0.3;
+      for (var guard = 0; guard < 400; guard++) {
+        if (ei >= cur.c.ev.length) {
+          startT += cur.c.len * cur.sd; ei = 0; cur.loop++;
+          if (cur.loop >= cur.tr.loops) load((idx + 1) % TRACKS.length, startT + 0.8);
+          continue;
+        }
+        var x = cur.c.ev[ei], t = startT + x.s * cur.sd;
+        if (t > ahead) break;
+        if (t >= a.currentTime - 0.02) play(x, t);
+        ei++;
+      }
+    }
+    function start() {
+      var a = audio(); if (!a || playing) return;
+      out = a.createGain(); out.gain.value = vol * 0.9; out.connect(a.destination);
+      playing = true;
+      load(idx, a.currentTime + 0.15);
+      timer = setInterval(pump, 50); pump();
+    }
+    function stop() {
+      playing = false; clearInterval(timer); timer = null;
+      if (out) { try { out.disconnect(); } catch (e) {} out = null; }
+    }
+    return {
+      start: start, stop: stop,
+      next: function () { var was = playing; stop(); idx = (idx + 1) % TRACKS.length; if (was) start(); else if (listener) listener(TRACKS[idx]); },
+      setVolume: function (v) { vol = v; if (out && actx) out.gain.setTargetAtTime(v * 0.9, actx.currentTime, 0.05); },
+      isPlaying: function () { return playing; },
+      track: function () { return TRACKS[idx]; },
+      onTrack: function (fn) { listener = fn; },
+      count: TRACKS.length
+    };
+  })();
+
+  /* ---------- sound effects + haptics ---------- */
   function tone(freq, len, type, vol, when) {
     if (!S.settings.sound) return;
     try {
-      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
-      if (actx.state === 'suspended') actx.resume();
+      if (!audio()) return;
       var t = actx.currentTime + (when || 0);
       var o = actx.createOscillator(), g = actx.createGain();
       o.type = type || 'square'; o.frequency.setValueAtTime(freq, t);
@@ -728,6 +951,19 @@ if (typeof module !== 'undefined') module.exports = Core;
   }
   cv.addEventListener('pointerdown', onPointer);
 
+  // Desktop: Space drills too (ignored while typing or holding the key down).
+  var finePointer = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  if (finePointer) $('hint').innerHTML = 'CLICK THE BASE OR PRESS <span class="kbd">SPACE</span> TO DRILL';
+  document.addEventListener('keydown', function (e) {
+    if (e.code !== 'Space' || e.repeat) return;
+    var tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'BUTTON' || !$('modal').hidden) return;
+    e.preventDefault();
+    var r = cv.getBoundingClientRect();
+    onPointer({ preventDefault: function () {}, clientX: r.left + r.width * (0.35 + Math.random() * 0.3), clientY: r.top + r.height * (0.4 + Math.random() * 0.2) });
+  });
+  if (window.ResizeObserver) new ResizeObserver(function () { layout(); }).observe(stage);
+
   /* ---------- mail call ---------- */
   function spawnMail() {
     var fromLeft = Math.random() < 0.5;
@@ -904,6 +1140,10 @@ if (typeof module !== 'undefined') module.exports = Core;
     var pane = $('pane-more');
     pane.innerHTML =
       '<h2 class="section-title">Settings</h2>' +
+      '<div class="setting"><span>Music</span><button class="toggle" type="button" role="switch" id="tMusic" aria-checked="' + S.settings.music + '" aria-label="Music"></button></div>' +
+      '<div class="card"><div class="top-row"><span class="tag">Now playing</span><button class="btn" type="button" id="musicNext">Next track ⏭</button></div>' +
+      '<div class="fname" id="nowPlaying"></div>' +
+      '<label for="musicVol" class="tag">Music volume</label><input type="range" id="musicVol" min="0" max="1" step="0.05" value="' + S.settings.musicVol + '"></div>' +
       '<div class="setting"><span>Sound effects</span><button class="toggle" type="button" role="switch" id="tSound" aria-checked="' + S.settings.sound + '" aria-label="Sound effects"></button></div>' +
       '<div class="setting"><span>Vibration</span><button class="toggle" type="button" role="switch" id="tHaptic" aria-checked="' + S.settings.haptics + '" aria-label="Vibration"></button></div>' +
       '<div class="card"><label for="nameInput" class="tag">Base name</label><input type="text" id="nameInput" maxlength="28" value="' + esc(S.baseName) + '"></div>' +
@@ -913,8 +1153,9 @@ if (typeof module !== 'undefined') module.exports = Core;
       '<div class="btnrow"><button class="btn" type="button" id="importBtn">Load backup</button></div></div>' +
       '<div class="card"><span class="tag">Danger zone</span><p>Erase everything, including commendations and ribbons.</p>' +
       '<div class="btnrow"><button class="btn danger" type="button" id="resetBtn">Reset all progress</button></div></div>' +
-      '<p class="credit">Made for a brand-new Sailor waiting on a flight home.<br>Congratulations on graduating. Fair winds and following seas. ⚓</p>';
+      '<p class="credit">Made for a brand-new Sailor waiting on a flight home.<br>Congratulations on graduating. Fair winds and following seas. ⚓<br>Version ' + GAME_VERSION + '</p>';
     $('exportBox').value = exportCode();
+    syncNowPlaying();
   }
   function exportCode() { try { return btoa(unescape(encodeURIComponent(JSON.stringify(S)))); } catch (e) { return ''; } }
 
@@ -948,6 +1189,8 @@ if (typeof module !== 'undefined') module.exports = Core;
       renderCommand(true); return;
     }
     if (t.id === 'tSound') { S.settings.sound = !S.settings.sound; t.setAttribute('aria-checked', S.settings.sound); syncMute(); save(); return; }
+    if (t.id === 'tMusic') { S.settings.music = !S.settings.music; t.setAttribute('aria-checked', S.settings.music); applyMusic(); syncMute(); save(); return; }
+    if (t.id === 'musicNext') { if (!S.settings.music) { S.settings.music = true; $('tMusic').setAttribute('aria-checked', 'true'); syncMute(); } if (Music.isPlaying()) Music.next(); else { Music.next(); applyMusic(); } save(); return; }
     if (t.id === 'tHaptic') { S.settings.haptics = !S.settings.haptics; t.setAttribute('aria-checked', S.settings.haptics); buzz(true); save(); return; }
     if (t.id === 'copyBtn') {
       var box = $('exportBox'); box.value = exportCode();
@@ -978,11 +1221,38 @@ if (typeof module !== 'undefined') module.exports = Core;
   });
   $('panel').addEventListener('input', function (e) {
     if (e.target.id === 'nameInput') { S.baseName = e.target.value.trim() || 'RTC Lakeside'; $('baseName').textContent = S.baseName; }
+    if (e.target.id === 'musicVol') { S.settings.musicVol = +e.target.value; Music.setVolume(S.settings.musicVol); }
   });
-  $('panel').addEventListener('change', function (e) { if (e.target.id === 'nameInput') save(); });
+  $('panel').addEventListener('change', function (e) { if (e.target.id === 'nameInput' || e.target.id === 'musicVol') save(); });
   $('capBar').addEventListener('click', function () { setTab('build'); });
-  $('muteBtn').addEventListener('click', function () { S.settings.sound = !S.settings.sound; syncMute(); save(); if (currentTab === 'more') renderMore(); });
-  function syncMute() { $('muteBtn').textContent = S.settings.sound ? '🔊' : '🔇'; }
+  // Header button is a master mute: silences music and effects together, or brings both back.
+  $('muteBtn').addEventListener('click', function () {
+    var on = !(S.settings.sound || S.settings.music);
+    S.settings.sound = on; S.settings.music = on;
+    applyMusic(); syncMute(); save(); if (currentTab === 'more') renderMore();
+  });
+  function syncMute() { $('muteBtn').textContent = (S.settings.sound || S.settings.music) ? '🔊' : '🔇'; }
+  function applyMusic() {
+    Music.setVolume(S.settings.musicVol);
+    if (S.settings.music && !document.hidden) Music.start(); else Music.stop();
+  }
+  function syncNowPlaying() {
+    var el = $('nowPlaying'); if (!el) return;
+    var tr = Music.track();
+    el.innerHTML = esc(tr.name) + ' <span class="tag" style="margin-left:6px">' + esc(tr.note) + '</span>';
+  }
+  Music.onTrack(syncNowPlaying);
+  // Browsers only allow audio after a user gesture, so the soundtrack starts on the first touch.
+  ['pointerdown', 'touchend', 'click'].forEach(function (ev) {
+    document.addEventListener(ev, function () {
+      if (!S) return;
+      if (S.settings.music && !Music.isPlaying()) applyMusic(); else if (S.settings.sound || S.settings.music) audio();
+    }, true);
+  });
+
+  /* ---------- live updates: the service worker signals when a new version has been installed ---------- */
+  window.addEventListener('bc-update-ready', function () { $('updateBanner').hidden = false; });
+  $('updateBanner').addEventListener('click', function () { save(); location.reload(); });
 
   function afterBuy() {
     D = C.derive(S); syncDivisions(); sfx.buy(); buzz(false);
@@ -1051,8 +1321,11 @@ if (typeof module !== 'undefined') module.exports = Core;
 
   var hiddenAt = 0;
   document.addEventListener('visibilitychange', function () {
-    if (document.hidden) { hiddenAt = Date.now(); save(); }
-    else if (hiddenAt) { var away = (Date.now() - hiddenAt) / 1000; hiddenAt = 0; lastT = 0; applyAway(away); }
+    if (document.hidden) { hiddenAt = Date.now(); save(); Music.stop(); if (actx) { try { actx.suspend(); } catch (e) {} } }
+    else {
+      if (S.settings.music) applyMusic();
+      if (hiddenAt) { var away = (Date.now() - hiddenAt) / 1000; hiddenAt = 0; lastT = 0; applyAway(away); }
+    }
   });
   window.addEventListener('pagehide', save);
   window.addEventListener('resize', function () { layout(); });
@@ -1070,11 +1343,16 @@ if (typeof module !== 'undefined') module.exports = Core;
     if (!S.seenIntro) {
       modal('⚓', 'Congratulations, Sailor!',
         '<p>You survived boot camp. Now the Navy wants you to <b>run one</b>.</p>' +
-        '<p class="m">Tap the base to drill recruits. Build training facilities, keep enough housing for every trainee, and collect a government check for every graduate. Grab the <b>Mail Call</b> envelope when it flies by.</p>',
+        '<p class="m">' + (finePointer ? 'Click the base (or press Space)' : 'Tap the base') + ' to drill recruits. Build training facilities, keep enough housing for every trainee, and collect a government check for every graduate. Grab the <b>Mail Call</b> envelope when it flies by.</p>',
         'Aye aye, let\'s go', function () { S.seenIntro = true; save(); });
+      S.seenVersion = GAME_VERSION;
     } else {
       var away = (Date.now() - (S.last || Date.now())) / 1000;
       applyAway(away, 'Welcome back, Commander');
+      if (S.seenVersion !== GAME_VERSION) {
+        S.seenVersion = GAME_VERSION; save();
+        setTimeout(function () { toast('⚓ <b>Updated to v' + GAME_VERSION + '</b><br>' + CHANGELOG, 6000); }, 800);
+      }
     }
     requestAnimationFrame(frame);
   }

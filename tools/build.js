@@ -28,7 +28,19 @@ const doc = `<!doctype html>
 ${body}
 <script>
 if (!window.Capacitor && 'serviceWorker' in navigator && location.protocol === 'https:') {
-  window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+  // A new deploy installs a new service worker; when it takes over an open page, tell the game to offer a reload.
+  var hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    if (!hadController) { hadController = true; return; }
+    window.dispatchEvent(new Event('bc-update-ready'));
+  });
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').then(function (reg) {
+      var check = function () { reg.update().catch(function () {}); };
+      setInterval(check, 10 * 60 * 1000);
+      document.addEventListener('visibilitychange', function () { if (!document.hidden) check(); });
+    }).catch(function () {});
+  });
 }
 </script>
 </body>
