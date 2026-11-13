@@ -143,6 +143,15 @@ textarea { min-height: 80px; font-size: 12px; font-family: ui-monospace, Menlo, 
 .toasts { position: fixed; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 10px); z-index: 60; display: grid; justify-items: center; gap: 6px; pointer-events: none; padding: 0 16px; }
 .toast { max-width: 420px; background: var(--deck); border: 1px solid var(--brass); color: var(--text); padding: 9px 14px; border-radius: 12px; font-weight: 600; font-size: 14px; box-shadow: 0 8px 24px #000a; animation: tin .25s ease-out; text-align: center; }
 .toast b { color: var(--brass); }
+.lb { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.lbrow { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 7px 9px; border-radius: 8px; background: var(--deck); font-variant-numeric: tabular-nums; }
+.lbrow .pos { font-family: var(--font-display); font-size: 16px; color: var(--muted); text-align: center; }
+.lbrow.top .pos { color: var(--brass); }
+.lbrow .who { min-width: 0; display: grid; }
+.lbrow .who b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lbrow .who small { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lbrow .val { font-weight: 700; color: var(--text); }
+.lbrow.me { outline: 2px solid var(--brass); background: #3a2f12; }
 .update-banner { position: fixed; z-index: 70; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 70px); width: min(440px, calc(100% - 32px)); padding: 12px 14px; border-radius: 12px; border: 0; background: var(--brass); color: var(--brass-ink); font-weight: 700; font-size: 14px; line-height: 1.35; box-shadow: 0 10px 30px #000b; }
 input[type="range"] { width: 100%; accent-color: var(--brass); }
 @keyframes tin { from { transform: translateY(-12px); opacity: 0; } }
@@ -340,7 +349,8 @@ var Core = (function () {
       v: 1, money: 0, runEarned: 0, allEarned: 0, runGrads: 0, allGrads: 0,
       fac: {}, house: 1, ups: {}, stars: 0, taps: 0, mailCalls: 0, ach: {}, prestiges: 0,
       boosts: [], played: 0, runPlayed: 0, last: Date.now(), nextMail: 40,
-      settings: { sound: true, haptics: true, music: true, musicVol: 0.6 }, baseName: 'RTC Lakeside', buyMode: 1, seenIntro: false, seenVersion: ''
+      settings: { sound: true, haptics: true, music: true, musicVol: 0.6 }, baseName: 'RTC Lakeside', buyMode: 1, seenIntro: false, seenVersion: '',
+      lbId: '', lbSecret: '', lbName: ''
     };
   }
 
@@ -1102,6 +1112,7 @@ if (typeof module !== 'undefined') module.exports = Core;
       var R = C.RANKS[ri], next = C.RANKS[ri + 1];
       var h = '<div class="card"><span class="tag">Your rank</span><h3>' + R[1] + ' <span style="color:var(--brass)">(' + R[2] + ')</span></h3>' +
         (next ? '<div class="progress"><i id="rankProg"></i></div><p id="rankNext"></p>' : '<p>The highest rank there is. Bravo Zulu, Admiral.</p>') + '</div>';
+      h += '<div class="card" id="lbBox"' + (LB_ON ? '' : ' hidden') + '></div>';
       var bonus = Math.round(S.stars * 5);
       h += '<div class="card"><span class="tag">Change of Command</span><h3>Commendations: <span style="color:var(--brass)">' + fmt(S.stars) + '</span></h3>' +
         '<p>Each commendation permanently boosts all training and housing by 5%. Current bonus: <b style="color:var(--text)">+' + fmt(bonus) + '%</b>.</p>' +
@@ -1115,6 +1126,7 @@ if (typeof module !== 'undefined') module.exports = Core;
       h += '<h2 class="section-title">Ribbons ' + got + '/' + C.ACH.length + '</h2><p class="sub">Each ribbon adds +1% to all output.</p><div class="achs">' +
         C.ACH.map(function (a) { return '<div class="ach' + (S.ach[a.id] ? ' got' : '') + '"><div class="n">' + (S.ach[a.id] ? '🎗️ ' : '') + a.name + '</div><div class="d">' + a.desc + '</div></div>'; }).join('') + '</div>';
       pane.innerHTML = h;
+      renderLB(); loadLB(false);
     }
     var next2 = C.RANKS[ri + 1];
     if (next2) {
@@ -1134,6 +1146,82 @@ if (typeof module !== 'undefined') module.exports = Core;
     $('stats').innerHTML = st.map(function (s) { return '<div class="stat"><div class="k">' + s[0] + '</div><div class="v">' + s[1] + '</div></div>'; }).join('');
   }
 
+  /* --- Global leaderboard (Supabase REST; see supabase/schema.sql) --- */
+  var LB = { url: '', key: '' };
+  var LB_ON = !!(LB.url && LB.key);
+  var lbSort = 'earned', lbState = { rows: null, error: '', me: 0, total: 0, at: 0, sort: '' }, lbBusy = false;
+  function lbHeaders(extra) {
+    var h = { apikey: LB.key };
+    if (/^eyJ/.test(LB.key)) h.Authorization = 'Bearer ' + LB.key; // legacy JWT anon key; new publishable keys go in apikey only
+    for (var k in extra || {}) h[k] = extra[k];
+    return h;
+  }
+  function uuid() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    var b = new Uint8Array(16); crypto.getRandomValues(b); b[6] = b[6] & 15 | 64; b[8] = b[8] & 63 | 128;
+    var x = Array.prototype.map.call(b, function (v) { return (v + 256).toString(16).slice(1); }).join('');
+    return x.slice(0, 8) + '-' + x.slice(8, 12) + '-' + x.slice(12, 16) + '-' + x.slice(16, 20) + '-' + x.slice(20);
+  }
+  function secret() { var b = new Uint8Array(24); crypto.getRandomValues(b); return Array.prototype.map.call(b, function (v) { return (v + 256).toString(16).slice(1); }).join(''); }
+  function countFrom(res) { var cr = res.headers.get('content-range') || ''; var n = +cr.split('/')[1]; return isFinite(n) ? n : 0; }
+
+  function lbSubmit(keepalive) {
+    if (!LB_ON || !S.lbName || !S.lbId) return Promise.resolve(false);
+    return fetch(LB.url + '/rest/v1/rpc/submit_score', {
+      method: 'POST', keepalive: !!keepalive, headers: lbHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ p_player: S.lbId, p_secret: S.lbSecret, p_name: S.lbName, p_base: S.baseName,
+        p_earned: S.allEarned, p_grads: S.allGrads, p_rank: C.rankIndex(S.allEarned), p_stars: S.stars })
+    }).then(function (r) { return r.ok; }).catch(function () { return false; });
+  }
+  function loadLB(force) {
+    if (!LB_ON || !S.lbName || lbBusy) return;
+    if (!force && lbState.sort === lbSort && Date.now() - lbState.at < 30000) return;
+    lbBusy = true;
+    var col = lbSort === 'earned' ? 'career_earned' : 'graduates';
+    var mine = lbSort === 'earned' ? S.allEarned : S.allGrads;
+    var base = LB.url + '/rest/v1/leaderboard';
+    var countHdr = lbHeaders({ Prefer: 'count=exact', Range: '0-0' });
+    Promise.all([
+      fetch(base + '?select=player_id,name,base_name,career_earned,graduates,rank_index&order=' + col + '.desc&limit=50', { headers: lbHeaders() })
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }),
+      fetch(base + '?select=player_id&' + col + '=gt.' + encodeURIComponent(String(mine)), { headers: countHdr }).then(countFrom),
+      fetch(base + '?select=player_id', { headers: countHdr }).then(countFrom)
+    ]).then(function (res) {
+      lbState = { rows: res[0], me: res[1] + 1, total: Math.max(res[2], res[1] + 1), error: '', at: Date.now(), sort: lbSort };
+    }).catch(function () {
+      lbState = { rows: null, error: 'Couldn\'t reach the leaderboard. Check your connection and tap Refresh.', me: 0, total: 0, at: Date.now(), sort: lbSort };
+    }).then(function () { lbBusy = false; renderLB(); });
+  }
+  function renderLB() {
+    var box = $('lbBox'); if (!box) return;
+    if (!LB_ON) { box.hidden = true; return; }
+    var h = '<div class="top-row"><span class="tag">Global leaderboard</span>' +
+      (S.lbName ? '<button class="btn" type="button" id="lbRefresh">Refresh</button>' : '') + '</div>';
+    if (!S.lbName) {
+      h += '<p>See how your base stacks up against every other commander. Pick a callsign other players will see.</p>' +
+        '<label for="lbNameInput" class="tag">Callsign</label><input type="text" id="lbNameInput" maxlength="20" autocomplete="off" placeholder="e.g. Seaman Smith">' +
+        '<button class="btn primary" type="button" id="lbJoin">Join the leaderboard</button>';
+    } else {
+      h += '<div class="buymode" role="group" aria-label="Rank by">' +
+        '<button type="button" data-lbsort="earned" aria-pressed="' + (lbSort === 'earned') + '">Career funding</button>' +
+        '<button type="button" data-lbsort="grads" aria-pressed="' + (lbSort === 'grads') + '">Graduates</button></div>';
+      if (lbState.error) h += '<p>' + esc(lbState.error) + '</p>';
+      else if (!lbState.rows || lbState.sort !== lbSort) h += '<p>Loading the board…</p>';
+      else if (!lbState.rows.length) h += '<p>No one on the board yet. Your score will appear within a couple of minutes.</p>';
+      else {
+        h += '<ol class="lb">' + lbState.rows.map(function (r, i) {
+          var me = r.player_id === S.lbId, R = C.RANKS[Math.min(r.rank_index || 0, C.RANKS.length - 1)];
+          var val = lbSort === 'earned' ? money(r.career_earned) : fmt(r.graduates);
+          return '<li class="lbrow' + (me ? ' me' : '') + (i < 3 ? ' top' : '') + '"><span class="pos">' + (i + 1) + '</span>' +
+            '<span class="who"><b>' + esc(r.name) + (me ? ' (you)' : '') + '</b><small>' + esc(R[2]) + ' · ' + esc(r.base_name || '') + '</small></span>' +
+            '<span class="val">' + val + '</span></li>';
+        }).join('') + '</ol>';
+        h += '<p>You are <b style="color:var(--brass)">#' + fmt(lbState.me) + '</b> of ' + fmt(lbState.total) + ' commanders, as ' + esc(S.lbName) + '.</p>';
+      }
+    }
+    box.hidden = false; box.innerHTML = h;
+  }
+
   /* --- More tab --- */
   var resetArmed = 0;
   function renderMore() {
@@ -1147,6 +1235,7 @@ if (typeof module !== 'undefined') module.exports = Core;
       '<div class="setting"><span>Sound effects</span><button class="toggle" type="button" role="switch" id="tSound" aria-checked="' + S.settings.sound + '" aria-label="Sound effects"></button></div>' +
       '<div class="setting"><span>Vibration</span><button class="toggle" type="button" role="switch" id="tHaptic" aria-checked="' + S.settings.haptics + '" aria-label="Vibration"></button></div>' +
       '<div class="card"><label for="nameInput" class="tag">Base name</label><input type="text" id="nameInput" maxlength="28" value="' + esc(S.baseName) + '"></div>' +
+      (LB_ON && S.lbName ? '<div class="card"><label for="callsignInput" class="tag">Leaderboard callsign</label><input type="text" id="callsignInput" maxlength="20" value="' + esc(S.lbName) + '"></div>' : '') +
       '<div class="card"><span class="tag">Backup</span><p>Copy this code to move your progress to another device.</p>' +
       '<textarea id="exportBox" readonly></textarea><div class="btnrow"><button class="btn" type="button" id="copyBtn">Copy code</button></div>' +
       '<label for="importBox" class="tag" style="margin-top:6px">Restore from code</label><textarea id="importBox" placeholder="Paste a backup code here"></textarea>' +
@@ -1189,6 +1278,16 @@ if (typeof module !== 'undefined') module.exports = Core;
       renderCommand(true); return;
     }
     if (t.id === 'tSound') { S.settings.sound = !S.settings.sound; t.setAttribute('aria-checked', S.settings.sound); syncMute(); save(); return; }
+    if (t.id === 'lbJoin') {
+      var nm = ($('lbNameInput').value || '').replace(/[<>]/g, '').trim().slice(0, 20);
+      if (!nm) { toast('Enter a callsign first'); $('lbNameInput').focus(); return; }
+      if (!S.lbId) { S.lbId = uuid(); S.lbSecret = secret(); }
+      S.lbName = nm; save(); renderLB();
+      lbSubmit(false).then(function (ok) { if (!ok) toast('Saved your callsign. Your score will upload when you\'re back online.'); loadLB(true); });
+      return;
+    }
+    if (t.id === 'lbRefresh') { lbSubmit(false).then(function () { loadLB(true); }); return; }
+    if (t.dataset.lbsort) { lbSort = t.dataset.lbsort; renderLB(); loadLB(false); return; }
     if (t.id === 'tMusic') { S.settings.music = !S.settings.music; t.setAttribute('aria-checked', S.settings.music); applyMusic(); syncMute(); save(); return; }
     if (t.id === 'musicNext') { if (!S.settings.music) { S.settings.music = true; $('tMusic').setAttribute('aria-checked', 'true'); syncMute(); } if (Music.isPlaying()) Music.next(); else { Music.next(); applyMusic(); } save(); return; }
     if (t.id === 'tHaptic') { S.settings.haptics = !S.settings.haptics; t.setAttribute('aria-checked', S.settings.haptics); buzz(true); save(); return; }
@@ -1223,7 +1322,15 @@ if (typeof module !== 'undefined') module.exports = Core;
     if (e.target.id === 'nameInput') { S.baseName = e.target.value.trim() || 'RTC Lakeside'; $('baseName').textContent = S.baseName; }
     if (e.target.id === 'musicVol') { S.settings.musicVol = +e.target.value; Music.setVolume(S.settings.musicVol); }
   });
-  $('panel').addEventListener('change', function (e) { if (e.target.id === 'nameInput' || e.target.id === 'musicVol') save(); });
+  $('panel').addEventListener('change', function (e) {
+    if (e.target.id === 'nameInput' || e.target.id === 'musicVol') save();
+    if (e.target.id === 'nameInput') lbSubmit(false);
+    if (e.target.id === 'callsignInput') {
+      var nm = e.target.value.replace(/[<>]/g, '').trim().slice(0, 20);
+      if (nm) { S.lbName = nm; save(); lbSubmit(false).then(function () { lbState.at = 0; }); toast('Callsign updated'); }
+      else e.target.value = S.lbName;
+    }
+  });
   $('capBar').addEventListener('click', function () { setTab('build'); });
   // Header button is a master mute: silences music and effects together, or brings both back.
   $('muteBtn').addEventListener('click', function () {
@@ -1299,7 +1406,7 @@ if (typeof module !== 'undefined') module.exports = Core;
   function refresh(force) { renderHeader(); renderPane(force); }
 
   /* ---------- main loop ---------- */
-  var lastT = 0, uiAcc = 0, achAcc = 0, saveAcc = 0;
+  var lastT = 0, uiAcc = 0, achAcc = 0, saveAcc = 0, lbAcc = 110;
   function frame(now) {
     var dt = lastT ? (now - lastT) / 1000 : 0; lastT = now;
     if (dt > 2) { applyAway(dt); dt = 0; }
@@ -1316,12 +1423,14 @@ if (typeof module !== 'undefined') module.exports = Core;
       syncDivisions();
     }
     if (saveAcc > 5) { saveAcc = 0; save(); }
+    lbAcc += dt;
+    if (lbAcc > 120) { lbAcc = 0; lbSubmit(false); }
     requestAnimationFrame(frame);
   }
 
   var hiddenAt = 0;
   document.addEventListener('visibilitychange', function () {
-    if (document.hidden) { hiddenAt = Date.now(); save(); Music.stop(); if (actx) { try { actx.suspend(); } catch (e) {} } }
+    if (document.hidden) { hiddenAt = Date.now(); save(); lbSubmit(true); Music.stop(); if (actx) { try { actx.suspend(); } catch (e) {} } }
     else {
       if (S.settings.music) applyMusic();
       if (hiddenAt) { var away = (Date.now() - hiddenAt) / 1000; hiddenAt = 0; lastT = 0; applyAway(away); }
