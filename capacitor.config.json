@@ -1,0 +1,8 @@
+{
+  "appId": "com.bootcamp.commander",
+  "appName": "Boot Camp Commander",
+  "webDir": "www",
+  "backgroundColor": "#0a1424",
+  "android": { "backgroundColor": "#0a1424" },
+  "ios": { "backgroundColor": "#0a1424", "contentInset": "never" }
+}

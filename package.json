@@ -1,0 +1,21 @@
+{
+  "name": "boot-camp-commander",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Idle clicker game: run a Navy-style recruit training base.",
+  "scripts": {
+    "build": "node tools/build.js",
+    "sim": "node tools/sim.js 3 1",
+    "sync": "node tools/build.js && npx cap sync",
+    "android:apk": "node tools/build.js && npx cap sync android && cd android && gradlew.bat assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "6.2.1",
+    "@capacitor/core": "6.2.1",
+    "@capacitor/haptics": "6.0.3",
+    "@capacitor/ios": "6.2.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "6.2.1"
+  }
+}

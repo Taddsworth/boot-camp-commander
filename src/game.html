@@ -1,0 +1,1087 @@
+﻿<title>Boot Camp Commander</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Stencil+One&family=Barlow+Semi+Condensed:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one-screen phone app. Header (funds) / tappable base map / scrolling command panel / bottom tab bar.
+   Single deliberate dark look: night-watch navy, brass fittings, signal red. */
+:root {
+  color-scheme: dark;
+  --ink: #0a1424;       /* page ground, deep navy */
+  --hull: #11203a;      /* panel surface */
+  --deck: #1a2e4f;      /* raised card */
+  --rail: #2a4470;      /* borders */
+  --brass: #e4b84c;     /* accent */
+  --brass-ink: #241a03; /* text on brass */
+  --signal: #e0503f;    /* warnings */
+  --sea: #5fb2d9;       /* info */
+  --go: #63c98f;        /* good */
+  --text: #e9eff7;
+  --muted: #92a5c0;
+  --font-display: "Saira Stencil One", "Impact", "Arial Narrow Bold", sans-serif;
+  --font-body: "Barlow Semi Condensed", "Roboto Condensed", "Arial Narrow", system-ui, sans-serif;
+  --gutter-l: max(16px, env(safe-area-inset-left, 0px));
+  --gutter-r: max(16px, env(safe-area-inset-right, 0px));
+}
+html { height: 100%; box-sizing: border-box; background: var(--ink); }
+*, *::before, *::after { box-sizing: inherit; }
+body {
+  height: 100%; margin: 0; overflow: hidden;
+  background: var(--ink); color: var(--text);
+  font-family: var(--font-body); font-size: 15px;
+  -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+
+#app { height: 100%; display: flex; flex-direction: column; max-width: 720px; margin: 0 auto; position: relative; }
+
+/* ---------- header ---------- */
+.top { padding-block: 10px 8px; padding-left: var(--gutter-l); padding-right: var(--gutter-r); background: var(--ink); display: grid; gap: 2px; }
+.top-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.basename { font-weight: 700; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.rank-chip { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px 3px 4px; border-radius: 999px; background: var(--deck); border: 1px solid var(--rail); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.rank-chip b { background: var(--brass); color: var(--brass-ink); border-radius: 999px; padding: 1px 6px; font-size: 11px; }
+.money-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.money { font-family: var(--font-display); font-size: clamp(30px, 9vw, 42px); line-height: 1.05; color: var(--brass); font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+.iconbtn { flex: none; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--rail); background: var(--hull); display: grid; place-items: center; font-size: 16px; }
+.rates { display: flex; gap: 12px; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; flex-wrap: wrap; }
+.rates strong { color: var(--text); font-weight: 600; }
+.capbar { margin-top: 6px; position: relative; height: 20px; border-radius: 6px; background: var(--hull); border: 1px solid var(--rail); overflow: hidden; cursor: pointer; }
+.capfill { position: absolute; inset: 0 auto 0 0; width: 0; background: linear-gradient(90deg, #2b6f8f, var(--sea)); transition: width .3s; }
+.capbar.full .capfill { background: repeating-linear-gradient(135deg, #a8392c 0 8px, var(--signal) 8px 16px); }
+.captext { position: relative; display: block; text-align: center; font-size: 12px; line-height: 18px; font-weight: 600; letter-spacing: .03em; text-shadow: 0 1px 2px #0008; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 6px; }
+
+/* ---------- base map ---------- */
+.stage { flex: 0 0 auto; height: clamp(190px, 34vh, 330px); position: relative; overflow: hidden; border-block: 1px solid var(--rail); background: #24402c; touch-action: none; }
+#map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.hint { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); pointer-events: none; font-size: 11px; font-weight: 700; letter-spacing: .18em; color: #ffffffcc; background: #0a142499; padding: 3px 10px; border-radius: 999px; transition: opacity .6s; white-space: nowrap; }
+.boosts { position: absolute; top: 6px; left: 6px; right: 6px; display: flex; gap: 6px; flex-wrap: wrap; pointer-events: none; }
+.boost { background: var(--brass); color: var(--brass-ink); font-weight: 700; font-size: 12px; padding: 2px 8px; border-radius: 999px; box-shadow: 0 2px 6px #0007; font-variant-numeric: tabular-nums; }
+
+/* ---------- panel ---------- */
+.panel { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; background: var(--ink); padding-block: 12px 20px; padding-left: var(--gutter-l); padding-right: var(--gutter-r); overscroll-behavior: contain; }
+.tabpane { display: grid; gap: 10px; }
+.section-title { font-family: var(--font-display); font-size: 18px; letter-spacing: .04em; color: var(--text); margin: 6px 0 0; text-wrap: balance; }
+.sub { color: var(--muted); font-size: 13px; margin: -4px 0 0; line-height: 1.35; }
+
+.buymode { display: flex; align-items: center; gap: 6px; }
+.buymode span { font-size: 12px; color: var(--muted); letter-spacing: .12em; text-transform: uppercase; font-weight: 700; margin-right: 4px; }
+.buymode button { flex: 1; padding: 7px 0; border-radius: 8px; border: 1px solid var(--rail); background: var(--hull); font-weight: 700; font-size: 14px; }
+.buymode button[aria-pressed="true"] { background: var(--brass); color: var(--brass-ink); border-color: var(--brass); }
+
+.row { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px; background: var(--hull); border: 1px solid var(--rail); border-radius: 12px; }
+.row.housing { background: linear-gradient(180deg, #1d3357, var(--hull)); border-color: #3b5d92; }
+.row.classified { opacity: .55; }
+.ficon { width: 48px; height: 48px; border-radius: 10px; display: grid; place-items: center; font-size: 26px; background: var(--deck); position: relative; }
+.ficon .cnt { position: absolute; right: -4px; bottom: -4px; min-width: 22px; height: 20px; padding: 0 5px; border-radius: 999px; background: var(--brass); color: var(--brass-ink); font-size: 12px; font-weight: 700; display: grid; place-items: center; font-variant-numeric: tabular-nums; }
+.finfo { min-width: 0; display: grid; gap: 1px; }
+.fname { font-weight: 700; font-size: 16px; line-height: 1.15; }
+.fdesc { font-size: 12.5px; color: var(--muted); line-height: 1.3; }
+.frate { font-size: 12.5px; color: var(--sea); font-variant-numeric: tabular-nums; }
+.buy { min-width: 86px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--brass); background: var(--brass); color: var(--brass-ink); display: grid; gap: 0; text-align: center; line-height: 1.1; font-variant-numeric: tabular-nums; transition: transform .06s; }
+.buy:active { transform: scale(.96); }
+.buy .q { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
+.buy .p { font-size: 15px; font-weight: 700; }
+.buy:disabled { background: transparent; color: var(--muted); border-color: var(--rail); cursor: default; }
+.buy.wide { min-width: 0; width: 100%; padding: 11px; }
+
+.upg .ficon { font-size: 22px; }
+.tag { display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.empty { padding: 18px; text-align: center; color: var(--muted); border: 1px dashed var(--rail); border-radius: 12px; font-size: 14px; line-height: 1.4; }
+
+.card { padding: 14px; background: var(--hull); border: 1px solid var(--rail); border-radius: 12px; display: grid; gap: 8px; }
+.card h3 { margin: 0; font-family: var(--font-display); font-size: 20px; letter-spacing: .03em; font-weight: 400; }
+.card p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.4; }
+.big { font-family: var(--font-display); font-size: 28px; color: var(--brass); }
+.progress { height: 8px; border-radius: 99px; background: var(--deck); overflow: hidden; }
+.progress > i { display: block; height: 100%; background: var(--brass); width: 0; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat { background: var(--hull); border: 1px solid var(--rail); border-radius: 10px; padding: 9px 10px; min-width: 0; }
+.stat .k { font-size: 11px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; font-weight: 700; }
+.stat .v { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.achs { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.ach { border-radius: 10px; padding: 8px 10px; border: 1px solid var(--rail); background: var(--hull); min-width: 0; }
+.ach.got { border-color: var(--brass); background: linear-gradient(180deg, #3a2f12, var(--hull)); }
+.ach .n { font-weight: 700; font-size: 14px; }
+.ach .d { font-size: 12px; color: var(--muted); line-height: 1.25; }
+.ach:not(.got) .n { color: var(--muted); }
+
+.setting { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px; background: var(--hull); border: 1px solid var(--rail); border-radius: 12px; font-weight: 600; }
+.toggle { width: 52px; height: 30px; border-radius: 99px; border: 1px solid var(--rail); background: var(--deck); position: relative; flex: none; }
+.toggle::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--muted); transition: left .15s, background .15s; }
+.toggle[aria-checked="true"] { background: #3a2f12; border-color: var(--brass); }
+.toggle[aria-checked="true"]::after { left: 25px; background: var(--brass); }
+input[type="text"], textarea { width: 100%; background: var(--ink); color: var(--text); border: 1px solid var(--rail); border-radius: 8px; padding: 9px 10px; font: inherit; -webkit-user-select: text; user-select: text; }
+textarea { min-height: 80px; font-size: 12px; font-family: ui-monospace, Menlo, Consolas, monospace; resize: vertical; }
+.btn { padding: 10px 14px; border-radius: 10px; border: 1px solid var(--rail); background: var(--deck); font-weight: 700; }
+.btn.danger { border-color: var(--signal); color: var(--signal); background: transparent; }
+.btn.danger.armed { background: var(--signal); color: #fff; }
+.btn.primary { background: var(--brass); color: var(--brass-ink); border-color: var(--brass); }
+.btnrow { display: flex; gap: 8px; flex-wrap: wrap; }
+.credit { text-align: center; color: var(--muted); font-size: 13px; padding: 10px 0 4px; line-height: 1.5; }
+
+/* ---------- tabs ---------- */
+.tabs { flex: none; display: grid; grid-template-columns: repeat(4, 1fr); background: var(--hull); border-top: 1px solid var(--rail); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+.tabs button { border: 0; background: none; padding: 9px 0 10px; display: grid; justify-items: center; gap: 1px; font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); position: relative; }
+.tabs button .ti { font-size: 19px; line-height: 1.1; filter: grayscale(.7); }
+.tabs button[aria-selected="true"] { color: var(--brass); }
+.tabs button[aria-selected="true"] .ti { filter: none; }
+.tabs button[aria-selected="true"]::before { content: ""; position: absolute; top: 0; left: 22%; right: 22%; height: 3px; border-radius: 0 0 3px 3px; background: var(--brass); }
+.dot { position: absolute; top: 6px; right: calc(50% - 20px); width: 9px; height: 9px; border-radius: 50%; background: var(--signal); box-shadow: 0 0 0 2px var(--hull); }
+
+/* ---------- modal / toast ---------- */
+.modal { position: fixed; inset: 0; z-index: 50; background: #050b16cc; display: grid; place-items: center; padding: 20px max(20px, env(safe-area-inset-right, 0px)) 20px max(20px, env(safe-area-inset-left, 0px)); }
+.modal-card { width: min(420px, 100%); background: var(--hull); border: 1px solid var(--brass); border-radius: 16px; padding: 22px 20px 18px; display: grid; gap: 12px; text-align: center; box-shadow: 0 20px 60px #000a; }
+.modal-card .crest { font-size: 44px; line-height: 1; }
+.modal-card h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 26px; color: var(--brass); letter-spacing: .03em; text-wrap: balance; }
+.modal-card p { margin: 0; color: var(--text); line-height: 1.45; font-size: 15px; }
+.modal-card p.m { color: var(--muted); font-size: 14px; }
+.toasts { position: fixed; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 10px); z-index: 60; display: grid; justify-items: center; gap: 6px; pointer-events: none; padding: 0 16px; }
+.toast { max-width: 420px; background: var(--deck); border: 1px solid var(--brass); color: var(--text); padding: 9px 14px; border-radius: 12px; font-weight: 600; font-size: 14px; box-shadow: 0 8px 24px #000a; animation: tin .25s ease-out; text-align: center; }
+.toast b { color: var(--brass); }
+@keyframes tin { from { transform: translateY(-12px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } .capfill { transition: none; } }
+@media (min-height: 820px) { .stage { height: clamp(220px, 36vh, 360px); } }
+</style>
+
+<div id="app">
+  <header class="top">
+    <div class="top-row">
+      <div class="basename" id="baseName">RTC Lakeside</div>
+      <div class="rank-chip" id="rankChip"><b>O-1</b><span>Ensign</span></div>
+    </div>
+    <div class="money-row">
+      <div class="money" id="money">$0</div>
+      <button class="iconbtn" id="muteBtn" aria-label="Toggle sound" type="button">🔊</button>
+    </div>
+    <div class="rates">
+      <span><strong id="mps">$0</strong>/sec</span>
+      <span><strong id="gps">0</strong> grads/sec</span>
+      <span><strong id="ppg">$5</strong> per grad</span>
+    </div>
+    <div class="capbar" id="capBar" role="button" tabindex="0" aria-label="Berthing capacity">
+      <div class="capfill" id="capFill"></div>
+      <span class="captext" id="capText">Berthing</span>
+    </div>
+  </header>
+
+  <div class="stage" id="stage">
+    <canvas id="map" aria-label="Your base. Tap to drill recruits."></canvas>
+    <div class="boosts" id="boosts"></div>
+    <div class="hint" id="hint">TAP THE BASE TO DRILL RECRUITS</div>
+  </div>
+
+  <main class="panel" id="panel">
+    <section class="tabpane" id="pane-build"></section>
+    <section class="tabpane" id="pane-upgrades" hidden></section>
+    <section class="tabpane" id="pane-command" hidden></section>
+    <section class="tabpane" id="pane-more" hidden></section>
+  </main>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="build" aria-selected="true" type="button"><span class="ti">🏗️</span>Build</button>
+    <button role="tab" data-tab="upgrades" aria-selected="false" type="button"><span class="ti">⬆️</span>Upgrades<i class="dot" id="upDot" hidden></i></button>
+    <button role="tab" data-tab="command" aria-selected="false" type="button"><span class="ti">🎖️</span>Command<i class="dot" id="cmdDot" hidden></i></button>
+    <button role="tab" data-tab="more" aria-selected="false" type="button"><span class="ti">⚙️</span>More</button>
+  </nav>
+</div>
+
+<div class="modal" id="modal" hidden><div class="modal-card" id="modalCard"></div></div>
+<div class="toasts" id="toasts"></div>
+
+<script id="core">
+/* ===== Pure game logic: no DOM. Shared by the app and the balance simulator. ===== */
+var Core = (function () {
+  var GROWTH = 1.15;
+  var BASE_PAY = 2;
+
+  var FAC = [
+    { id: 'drill',   name: 'Drill Hall',                icon: '🥾', base: 15,     rate: 0.1,   color: '#7b8a5a', desc: 'Marching, facing movements, and a great deal of yelling.' },
+    { id: 'class',   name: 'Seamanship Classroom',      icon: '📘', base: 100,    rate: 1,     color: '#5a7bb0', desc: 'Knots, rank insignia, and the 11 General Orders.' },
+    { id: 'pool',    name: 'Combat Training Pool',      icon: '🏊', base: 1100,   rate: 8,     color: '#2f8fc0', desc: 'Abandon-ship drills. Everyone passes the swim test eventually.' },
+    { id: 'chamber', name: 'Confidence Chamber',        icon: '😷', base: 12e3,   rate: 47,    color: '#8a7a9e', desc: 'Mask on, mask off. Tears, sneezes, and character.' },
+    { id: 'range',   name: 'Small Arms Range',          icon: '🎯', base: 130e3,  rate: 260,   color: '#9a6b4a', desc: 'Safety brief, sight picture, squeeze. Repeat.' },
+    { id: 'fire',    name: 'Firefighting Trainer',      icon: '🧯', base: 1.4e6,  rate: 1400,  color: '#c0553f', desc: 'Hose teams advance on a very real, very hot fire.' },
+    { id: 'wet',     name: 'Damage Control Wet Trainer',icon: '🔧', base: 20e6,   rate: 7800,  color: '#3f8f8a', desc: 'Plug the leaks while the compartment floods around you.' },
+    { id: 'ship',    name: 'Training Ship Simulator',   icon: '🚢', base: 330e6,  rate: 44e3,  color: '#6f7f99', desc: 'A full-size hull on dry land for mooring and watchstanding.' },
+    { id: 'battle',  name: 'Battle Stations Complex',   icon: '⚓', base: 5.1e9,  rate: 260e3, color: '#b08a3c', desc: 'The all-night final test. Recruits walk out as Sailors.' },
+    { id: 'academy', name: 'Recruit Command Academy',   icon: '🎓', base: 75e9,   rate: 1.6e6, color: '#9e4f6f', desc: 'Trains the drill instructors who train everyone else.' }
+  ];
+
+  var FAC_UP_NAMES = {
+    drill:   ['Spit-Shined Boots', 'Cadence Callers', 'Guidon Bearers', 'Precision Drill Team', 'Parade-Ground Perfection'],
+    class:   ['Laminated Flashcards', 'Rate Training Manuals', 'Smart Boards', 'Mandatory Study Hall', 'Instructor of the Year'],
+    pool:    ['Kickboards', 'Lifeguard Towers', 'Abandon-Ship Platform', 'Wave Machine', 'Olympic Lanes'],
+    chamber: ['Fresh Mask Filters', 'Buddy-System Exits', 'Industrial Tissue Supply', 'Calm Breathing Coach', 'Iron Lungs'],
+    range:   ['Ear Protection', 'Laser Sights', 'Electronic Targets', 'Marksmanship Ribbons', 'Expert Medal Program'],
+    fire:    ['Fresh Hoses', 'Proximity Suits', 'Fog Nozzles', 'Flashover Simulator', 'Fire Captain Mentors'],
+    wet:     ['Shoring Lumber', 'Pipe Patch Kits', 'Bigger Leaks', 'Flooding Compartments', 'Damage Control Wizards'],
+    ship:    ['Bridge Consoles', 'Mooring Lines', 'VR Watchstanding', 'Full-Scale Hull', 'Commissioned Trainer'],
+    battle:  ['Night Ops Lighting', 'Smoke Machines', '12-Hour Scenarios', 'Fog-of-War AI', 'Ball Cap Ceremony'],
+    academy: ['Leadership Seminars', 'Honor Graduates', 'Pass-in-Review Field', "Admirals' Lecture Series", 'Hall of Heroes']
+  };
+  var TIER_AT   = [1, 10, 25, 50, 100, 150, 200, 250, 300];
+  var TIER_COST = [10, 50, 500, 5e4, 5e6, 5e8, 5e10, 5e12, 5e14];
+  var ROMAN = ['', 'I', 'II', 'III', 'IV', 'V'];
+
+  var HOUSING_TIERS = [
+    [1, 'Tents'], [3, 'Quonset Huts'], [5, 'Barracks'], [8, 'Recruit Ships'], [12, 'Mega Ships'], [16, 'Berthing Towers'], [21, 'Floating City']
+  ];
+
+  var UP = [];
+  FAC.forEach(function (f) {
+    TIER_AT.forEach(function (at, k) {
+      var name = k < 5 ? FAC_UP_NAMES[f.id][k] : f.name.split(' ')[0] + ' Overhaul Mk ' + ROMAN[k - 4];
+      UP.push({ id: 'f_' + f.id + '_' + k, kind: 'fac', target: f.id, mult: 2, icon: f.icon, name: name,
+        cost: f.base * TIER_COST[k], desc: f.name + ' output ×2', req: { fac: f.id, n: at } });
+    });
+  });
+  [
+    ['Federal Training Contract', 5e3], ['Congressional Appropriation', 5e5], ['Defense Budget Line Item', 5e7],
+    ['Bipartisan Readiness Act', 5e9], ['Omnibus Spending Bill', 5e11], ['Supplemental Appropriation', 5e13],
+    ['Pentagon Priority Funding', 5e15], ['Blank Check from Treasury', 5e17], ['Infinite Budget Memo', 5e19], ['Galactic Defense Fund', 5e21]
+  ].forEach(function (c, i) {
+    UP.push({ id: 'pay_' + i, kind: 'pay', mult: 1.5, icon: '💵', name: c[0], cost: c[1], desc: 'Government pays +50% per graduate', req: { earned: c[1] * 0.3 } });
+  });
+  [
+    ['Command Voice', 100, 'tap', 2, 'Taps train ×2 recruits', { taps: 15 }],
+    ['Smokey Bear Hat', 1500, 'tap', 2, 'Taps train ×2 recruits', { taps: 75 }],
+    ['Recruit Division Commander', 2e4, 'tapPct', 0.01, 'Each tap also trains 1% of your per-second rate', { taps: 150 }],
+    ['Brass Whistle', 2e6, 'tapPct', 0.01, 'Each tap also trains +1% of your per-second rate', { taps: 300 }],
+    ['Megaphone', 2e8, 'tapPct', 0.01, 'Each tap also trains +1% of your per-second rate', { taps: 600 }],
+    ['Thousand-Yard Stare', 2e10, 'tapPct', 0.01, 'Each tap also trains +1% of your per-second rate', { taps: 1000 }],
+    ['Voice of the Fleet', 2e12, 'tapPct', 0.02, 'Each tap also trains +2% of your per-second rate', { taps: 2000 }]
+  ].forEach(function (t, i) {
+    UP.push({ id: 'tap_' + i, kind: t[2], mult: t[3], icon: '📣', name: t[0], cost: t[1], desc: t[4], req: t[5] });
+  });
+  [
+    ['Bunk Beds', 1500, 3], ['Triple Racks', 8e4, 6], ['Hot Racking', 5e6, 9], ['Compact Lockers', 4e8, 12],
+    ['Modular Berthing', 4e10, 15], ['Vertical Barracks', 4e12, 18], ['Pocket Dimensions', 4e14, 21]
+  ].forEach(function (h, i) {
+    UP.push({ id: 'house_' + i, kind: 'house', mult: 2, icon: '🛏️', name: h[0], cost: h[1], desc: 'Housing capacity ×2', req: { house: h[2] } });
+  });
+  [
+    ['Mail Clerk', 5e4, 'mailFreq', 'Mail Call shows up 30% more often', 1],
+    ['Care Package Program', 5e6, 'mailLen', 'Mail Call bonuses last twice as long', 4],
+    ['Pen Pal Network', 5e8, 'mailFreq', 'Mail Call shows up 30% more often', 10]
+  ].forEach(function (m, i) {
+    UP.push({ id: 'mail_' + i, kind: m[2], mult: 1, icon: '✉️', name: m[0], cost: m[1], desc: m[3], req: { mail: m[4] } });
+  });
+  UP.sort(function (a, b) { return a.cost - b.cost; });
+  var UP_BY_ID = {}; UP.forEach(function (u) { UP_BY_ID[u.id] = u; });
+
+  var RANKS = [
+    [0, 'Ensign', 'O-1'], [1e3, 'Lieutenant (JG)', 'O-2'], [1e4, 'Lieutenant', 'O-3'], [1e5, 'Lt. Commander', 'O-4'],
+    [1e6, 'Commander', 'O-5'], [1e7, 'Captain', 'O-6'], [1e8, 'Rear Admiral (LH)', 'O-7'], [1e9, 'Rear Admiral', 'O-8'],
+    [1e10, 'Vice Admiral', 'O-9'], [1e12, 'Admiral', 'O-10'], [1e15, 'Fleet Admiral', 'O-11']
+  ];
+
+  var ACH = [
+    { id: 'g2', name: 'First Division', desc: 'Graduate 100 recruits', t: function (s) { return s.allGrads >= 100; } },
+    { id: 'g3', name: 'Pass in Review', desc: 'Graduate 1,000 recruits', t: function (s) { return s.allGrads >= 1e3; } },
+    { id: 'g4', name: 'Ten Thousand Strong', desc: 'Graduate 10,000 recruits', t: function (s) { return s.allGrads >= 1e4; } },
+    { id: 'g5', name: 'Fleet Replenishment', desc: 'Graduate 100,000 recruits', t: function (s) { return s.allGrads >= 1e5; } },
+    { id: 'g6', name: 'A Million Sailors', desc: 'Graduate 1 million recruits', t: function (s) { return s.allGrads >= 1e6; } },
+    { id: 'g8', name: 'Armada', desc: 'Graduate 100 million recruits', t: function (s) { return s.allGrads >= 1e8; } },
+    { id: 'g10', name: 'Planetary Navy', desc: 'Graduate 10 billion recruits', t: function (s) { return s.allGrads >= 1e10; } },
+    { id: 'g12', name: 'Galactic Fleet', desc: 'Graduate 1 trillion recruits', t: function (s) { return s.allGrads >= 1e12; } },
+    { id: 'm6', name: 'Line Item', desc: 'Earn $1 million total', t: function (s) { return s.allEarned >= 1e6; } },
+    { id: 'm9', name: 'Big Appropriations', desc: 'Earn $1 billion total', t: function (s) { return s.allEarned >= 1e9; } },
+    { id: 'm12', name: 'Trillion-Dollar Base', desc: 'Earn $1 trillion total', t: function (s) { return s.allEarned >= 1e12; } },
+    { id: 'm15', name: 'Defense Budget', desc: 'Earn $1 quadrillion total', t: function (s) { return s.allEarned >= 1e15; } },
+    { id: 't2', name: 'Sore Thumb', desc: 'Tap 100 times', t: function (s) { return s.taps >= 100; } },
+    { id: 't3', name: 'Drill Thumb', desc: 'Tap 1,000 times', t: function (s) { return s.taps >= 1e3; } },
+    { id: 't4', name: 'Thumb of Steel', desc: 'Tap 10,000 times', t: function (s) { return s.taps >= 1e4; } },
+    { id: 'mc1', name: 'Mail Call!', desc: 'Open your first Mail Call', t: function (s) { return s.mailCalls >= 1; } },
+    { id: 'mc10', name: 'Pen Pal', desc: 'Open 10 Mail Calls', t: function (s) { return s.mailCalls >= 10; } },
+    { id: 'mc50', name: 'Fan Mail', desc: 'Open 50 Mail Calls', t: function (s) { return s.mailCalls >= 50; } },
+    { id: 'h5', name: 'Room for Everyone', desc: 'Reach housing level 5', t: function (s) { return s.house >= 5; } },
+    { id: 'h10', name: 'Berthing Boss', desc: 'Reach housing level 10', t: function (s) { return s.house >= 10; } },
+    { id: 'h20', name: 'Floating City', desc: 'Reach housing level 21', t: function (s) { return s.house >= 21; } },
+    { id: 'all', name: 'Full Curriculum', desc: 'Own every training facility', t: function (s) { return FAC.every(function (f) { return (s.fac[f.id] || 0) > 0; }); } },
+    { id: 'c100', name: 'Centurion', desc: 'Own 100 of one facility', t: function (s) { return FAC.some(function (f) { return (s.fac[f.id] || 0) >= 100; }); } },
+    { id: 'u25', name: 'Modernized', desc: 'Buy 25 upgrades', t: function (s) { return Object.keys(s.ups).length >= 25; } },
+    { id: 'p1', name: 'Change of Command', desc: 'Hand over command once', t: function (s) { return s.prestiges >= 1; } },
+    { id: 'p5', name: 'Career Officer', desc: 'Hand over command 5 times', t: function (s) { return s.prestiges >= 5; } }
+  ];
+
+  function newState() {
+    return {
+      v: 1, money: 0, runEarned: 0, allEarned: 0, runGrads: 0, allGrads: 0,
+      fac: {}, house: 1, ups: {}, stars: 0, taps: 0, mailCalls: 0, ach: {}, prestiges: 0,
+      boosts: [], played: 0, runPlayed: 0, last: Date.now(), nextMail: 40,
+      settings: { sound: true, haptics: true }, baseName: 'RTC Lakeside', buyMode: 1, seenIntro: false
+    };
+  }
+
+  function facCost(f, owned, n) { return f.base * Math.pow(GROWTH, owned) * (Math.pow(GROWTH, n) - 1) / (GROWTH - 1); }
+  function maxAffordable(f, owned, money) {
+    var c0 = f.base * Math.pow(GROWTH, owned);
+    if (money < c0) return 0;
+    return Math.max(1, Math.floor(Math.log(money * (GROWTH - 1) / c0 + 1) / Math.log(GROWTH)));
+  }
+  function houseCost(s) { return 75 * Math.pow(3, s.house - 1); }
+  function houseName(level) { var n = HOUSING_TIERS[0][1]; HOUSING_TIERS.forEach(function (t) { if (level >= t[0]) n = t[1]; }); return n; }
+
+  /* Derived numbers, recomputed after any purchase. */
+  function derive(s) {
+    var d = { global: (1 + 0.05 * s.stars) * (1 + 0.01 * Object.keys(s.ach).length), facMult: {}, facRate: {}, pay: BASE_PAY, tapMult: 1, tapPct: 0, houseMult: 1, mailFreq: 1, mailLen: 1 };
+    FAC.forEach(function (f) { d.facMult[f.id] = 1; });
+    for (var id in s.ups) {
+      var u = UP_BY_ID[id]; if (!u) continue;
+      if (u.kind === 'fac') d.facMult[u.target] *= u.mult;
+      else if (u.kind === 'pay') d.pay *= u.mult;
+      else if (u.kind === 'tap') d.tapMult *= u.mult;
+      else if (u.kind === 'tapPct') d.tapPct += u.mult;
+      else if (u.kind === 'house') d.houseMult *= u.mult;
+      else if (u.kind === 'mailFreq') d.mailFreq *= 0.7;
+      else if (u.kind === 'mailLen') d.mailLen *= 2;
+    }
+    var training = 0;
+    FAC.forEach(function (f) {
+      d.facRate[f.id] = f.rate * d.facMult[f.id] * d.global;
+      training += d.facRate[f.id] * (s.fac[f.id] || 0);
+    });
+    d.training = training;
+    d.capacity = 2 * Math.pow(2.5, s.house - 1) * d.houseMult * d.global;
+    return d;
+  }
+  function boostMult(s, kind) { var m = 1; s.boosts.forEach(function (b) { if (b.kind === kind && b.until > s.played) m *= b.mult; }); return m; }
+  function baseThroughput(d) { return Math.min(d.training, d.capacity); }
+  function throughput(s, d) { return baseThroughput(d) * boostMult(s, 'prod'); }
+  function tapGrads(s, d) { return (1 + d.training * d.tapPct) * d.tapMult * d.global * boostMult(s, 'tap'); }
+
+  function earn(s, money, grads) {
+    s.money += money; s.runEarned += money; s.allEarned += money;
+    s.runGrads += grads; s.allGrads += grads;
+  }
+  function tick(s, d, dt) {
+    var g = throughput(s, d) * dt;
+    earn(s, g * d.pay, g);
+    s.played += dt; s.runPlayed += dt;
+    if (s.boosts.length) s.boosts = s.boosts.filter(function (b) { return b.until > s.played; });
+  }
+  function tap(s, d) { var g = tapGrads(s, d); s.taps++; earn(s, g * d.pay, g); return g * d.pay; }
+
+  function upVisible(s, u) {
+    if (s.ups[u.id]) return false;
+    var r = u.req;
+    if (r.fac && (s.fac[r.fac] || 0) < r.n) return false;
+    if (r.earned && s.runEarned < r.earned) return false;
+    if (r.taps && s.taps < r.taps) return false;
+    if (r.house && s.house < r.house) return false;
+    if (r.mail && s.mailCalls < r.mail) return false;
+    return true;
+  }
+  function buyFac(s, f, n) {
+    var cost = facCost(f, s.fac[f.id] || 0, n);
+    if (n < 1 || s.money < cost) return false;
+    s.money -= cost; s.fac[f.id] = (s.fac[f.id] || 0) + n; return true;
+  }
+  function buyHouse(s) { var c = houseCost(s); if (s.money < c) return false; s.money -= c; s.house++; return true; }
+  function buyUp(s, u) { if (!upVisible(s, u) || s.money < u.cost) return false; s.money -= u.cost; s.ups[u.id] = 1; return true; }
+
+  function starsTotal(allEarned) { return Math.floor(10 * Math.cbrt(allEarned / 1e10)); }
+  function starsPending(s) { return Math.max(0, starsTotal(s.allEarned) - s.stars); }
+  function prestige(s) {
+    var gain = starsPending(s); if (gain < 1) return 0;
+    s.stars += gain; s.prestiges++;
+    s.money = 0; s.runEarned = 0; s.runGrads = 0; s.runPlayed = 0;
+    s.fac = {}; s.house = 1; s.ups = {}; s.boosts = [];
+    return gain;
+  }
+  function rankIndex(allEarned) { var i = 0; RANKS.forEach(function (r, k) { if (allEarned >= r[0]) i = k; }); return i; }
+  function checkAch(s) {
+    var fresh = [];
+    ACH.forEach(function (a) { if (!s.ach[a.id] && a.t(s)) { s.ach[a.id] = 1; fresh.push(a); } });
+    return fresh;
+  }
+
+  return {
+    FAC: FAC, UP: UP, UP_BY_ID: UP_BY_ID, RANKS: RANKS, ACH: ACH, GROWTH: GROWTH,
+    newState: newState, facCost: facCost, maxAffordable: maxAffordable, houseCost: houseCost, houseName: houseName,
+    derive: derive, boostMult: boostMult, baseThroughput: baseThroughput, throughput: throughput, tapGrads: tapGrads,
+    tick: tick, tap: tap, earn: earn, upVisible: upVisible, buyFac: buyFac, buyHouse: buyHouse, buyUp: buyUp,
+    starsTotal: starsTotal, starsPending: starsPending, prestige: prestige, rankIndex: rankIndex, checkAch: checkAch
+  };
+})();
+if (typeof module !== 'undefined') module.exports = Core;
+</script>
+
+<script>
+(function () {
+  'use strict';
+  var C = Core;
+  var SAVE_KEY = 'bootcamp-commander-save-v1';
+  var OFFLINE_CAP = 12 * 3600;
+  var S, D;
+  var $ = function (id) { return document.getElementById(id); };
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- formatting ---------- */
+  var SUF = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc', 'UDc', 'DDc', 'TDc', 'QaDc', 'QiDc'];
+  function fmt(n, frac) {
+    if (!isFinite(n)) return '∞';
+    if (n < 0) return '-' + fmt(-n, frac);
+    if (n < 1000) {
+      if (frac && n > 0 && n < 100 && Math.abs(n - Math.round(n)) > 0.05) return n.toFixed(1);
+      return String(Math.floor(n));
+    }
+    var i = Math.floor(Math.log10(n) / 3);
+    if (i >= SUF.length) return n.toExponential(2).replace('+', '');
+    var v = n / Math.pow(1000, i);
+    v = Math.floor(v * 100) / 100;
+    return (v < 10 ? v.toFixed(2) : v < 100 ? v.toFixed(1) : v.toFixed(0)) + SUF[i];
+  }
+  function money(n) { return '$' + fmt(n); }
+  function dur(sec) {
+    sec = Math.floor(sec);
+    var h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
+    if (h) return h + 'h ' + m + 'm';
+    if (m) return m + 'm ' + s + 's';
+    return s + 's';
+  }
+  function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  /* ---------- persistence ---------- */
+  function save() {
+    if (!S) return;
+    S.last = Date.now();
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {}
+  }
+  function hydrate(obj) {
+    var base = C.newState();
+    if (!obj || typeof obj !== 'object') return base;
+    for (var k in base) if (obj[k] !== undefined) base[k] = obj[k];
+    base.settings = Object.assign(C.newState().settings, obj.settings || {});
+    return base;
+  }
+  function load() {
+    try { var raw = localStorage.getItem(SAVE_KEY); if (raw) return hydrate(JSON.parse(raw)); } catch (e) {}
+    return null;
+  }
+
+  /* ---------- sound + haptics ---------- */
+  var actx = null;
+  function tone(freq, len, type, vol, when) {
+    if (!S.settings.sound) return;
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === 'suspended') actx.resume();
+      var t = actx.currentTime + (when || 0);
+      var o = actx.createOscillator(), g = actx.createGain();
+      o.type = type || 'square'; o.frequency.setValueAtTime(freq, t);
+      g.gain.setValueAtTime(vol || 0.04, t); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+      o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + len + 0.03);
+    } catch (e) {}
+  }
+  var sfx = {
+    tap: function () { tone(480 + Math.random() * 90, 0.045, 'square', 0.018); },
+    buy: function () { tone(660, 0.07, 'triangle', 0.06); tone(990, 0.1, 'triangle', 0.05, 0.06); },
+    no: function () { tone(160, 0.12, 'sawtooth', 0.03); },
+    mail: function () { [392, 523, 659, 784].forEach(function (f, i) { tone(f, i === 3 ? 0.35 : 0.13, 'sawtooth', 0.025, i * 0.14); }); },
+    promo: function () { [523, 659, 784, 1046, 784, 1046].forEach(function (f, i) { tone(f, 0.16, 'triangle', 0.05, i * 0.12); }); },
+    ach: function () { tone(880, 0.1, 'triangle', 0.05); tone(1320, 0.18, 'triangle', 0.05, 0.09); }
+  };
+  function buzz(strong) {
+    if (!S.settings.haptics) return;
+    try {
+      var H = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics;
+      if (H && H.impact) { H.impact({ style: strong ? 'MEDIUM' : 'LIGHT' }); return; }
+      if (navigator.vibrate) navigator.vibrate(strong ? 25 : 8);
+    } catch (e) {}
+  }
+
+  /* ---------- toasts + modal ---------- */
+  function toast(html, ms) {
+    var el = document.createElement('div');
+    el.className = 'toast'; el.innerHTML = html;
+    $('toasts').appendChild(el);
+    while ($('toasts').children.length > 3) $('toasts').firstChild.remove();
+    setTimeout(function () { el.remove(); }, ms || 2800);
+  }
+  function modal(crest, title, bodyHtml, btnLabel, onClose) {
+    $('modalCard').innerHTML = '<div class="crest">' + crest + '</div><h2>' + title + '</h2>' + bodyHtml +
+      '<button class="btn primary" id="modalBtn" type="button">' + btnLabel + '</button>';
+    $('modal').hidden = false;
+    $('modalBtn').onclick = function () { $('modal').hidden = true; if (onClose) onClose(); };
+  }
+
+  /* ---------- offline progress ---------- */
+  function applyAway(seconds, label) {
+    if (seconds < 5) return;
+    var secs = Math.min(seconds, OFFLINE_CAP);
+    var rate = C.baseThroughput(D);
+    var g = rate * secs, m = g * D.pay;
+    if (m <= 0) return;
+    C.earn(S, m, g);
+    if (seconds >= 60) {
+      modal('✈️', label || 'Welcome back, Commander',
+        '<p>While you were away for <b>' + dur(seconds) + '</b>, your base graduated <b>' + fmt(g) + '</b> recruits and the government paid out <b style="color:var(--brass)">' + money(m) + '</b>.</p>' +
+        (seconds > OFFLINE_CAP ? '<p class="m">Away earnings cap at 12 hours.</p>' : '<p class="m">The base keeps training even when the app is closed, for up to 12 hours.</p>'),
+        'Carry on');
+    }
+  }
+
+  /* ================= BASE MAP (canvas) ================= */
+  var cv = $('map'), ctx = cv.getContext('2d'), stage = $('stage');
+  var W = 0, H = 0, DPR = 1, plots = [], grinder = null, houseSlots = [];
+  var floaters = [], ripples = [], divisions = [], mail = null, flagT = 0;
+
+  function layout() {
+    var r = stage.getBoundingClientRect();
+    W = r.width; H = r.height; DPR = Math.min(window.devicePixelRatio || 1, 3);
+    cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    var padX = Math.max(8, W * 0.025), gap = Math.max(4, W * 0.012);
+    var rowH = H * 0.25, bw = (W - padX * 2 - gap * 4) / 5;
+    plots = [];
+    for (var i = 0; i < 10; i++) {
+      var top = i < 5, col = i % 5;
+      plots.push({ x: padX + col * (bw + gap), y: top ? H * 0.04 : H * 0.96 - rowH, w: bw, h: rowH, pulse: 0 });
+    }
+    var gy = H * 0.04 + rowH + H * 0.055, gh = H * 0.96 - rowH - H * 0.055 - gy;
+    grinder = { x: W * 0.24, y: gy, w: W * 0.52, h: gh };
+    houseSlots = [];
+    var hw = W * 0.24 - padX - gap, hh = (gh - gap) / 2;
+    [padX, W * 0.76 + gap].forEach(function (x) {
+      for (var j = 0; j < 2; j++) houseSlots.push({ x: x, y: gy + j * (hh + gap), w: hw, h: hh });
+    });
+  }
+
+  function rr(x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  }
+  function shade(hex, amt) {
+    var n = parseInt(hex.slice(1), 16), r = n >> 16, g = n >> 8 & 255, b = n & 255;
+    var f = function (c) { return Math.max(0, Math.min(255, Math.round(c + (amt < 0 ? c * amt : (255 - c) * amt)))); };
+    return 'rgb(' + f(r) + ',' + f(g) + ',' + f(b) + ')';
+  }
+
+  function grinderPath(d) {
+    var g = grinder, ins = Math.min(12, g.h * 0.2), x0 = g.x + ins, y0 = g.y + ins, w = g.w - ins * 2, h = g.h - ins * 2;
+    var P = 2 * (w + h); d = ((d % P) + P) % P;
+    if (d < w) return { x: x0 + d, y: y0, dx: 1, dy: 0 };
+    d -= w; if (d < h) return { x: x0 + w, y: y0 + d, dx: 0, dy: 1 };
+    d -= h; if (d < w) return { x: x0 + w - d, y: y0 + h, dx: -1, dy: 0 };
+    d -= w; return { x: x0, y: y0 + h - d, dx: 0, dy: -1 };
+  }
+
+  function syncDivisions() {
+    var want = Math.max(1, Math.min(7, 1 + Math.floor(Math.log10(Math.max(1, C.baseThroughput(D) * 10)) * 0.9)));
+    while (divisions.length < want) divisions.push({ d: Math.random() * 1000, speed: 14 + Math.random() * 6 });
+    while (divisions.length > want) divisions.pop();
+  }
+
+  function drawMap(dt) {
+    flagT += dt;
+    // ground
+    ctx.fillStyle = '#2b4a31'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#31533a';
+    for (var gx = 0; gx < W; gx += 26) for (var gy = (gx / 26 % 2) * 13; gy < H; gy += 26) ctx.fillRect(gx, gy, 13, 13);
+    // roads
+    ctx.fillStyle = '#4a4f57';
+    var roadY1 = plots[0].y + plots[0].h + H * 0.012, roadY2 = plots[5].y - H * 0.012 - H * 0.03;
+    ctx.fillRect(0, roadY1, W, H * 0.03); ctx.fillRect(0, roadY2, W, H * 0.03);
+    // grinder (parade field)
+    var g = grinder;
+    ctx.fillStyle = '#3d434d'; rr(g.x, g.y, g.w, g.h, 6); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.22)'; ctx.lineWidth = 1;
+    for (var lx = g.x + 14; lx < g.x + g.w - 6; lx += 18) { ctx.beginPath(); ctx.moveTo(lx, g.y + 5); ctx.lineTo(lx, g.y + g.h - 5); ctx.stroke(); }
+    ctx.strokeStyle = 'rgba(228,184,76,.55)'; ctx.lineWidth = 2; rr(g.x + 3, g.y + 3, g.w - 6, g.h - 6, 4); ctx.stroke();
+    // flag at grinder center
+    var fx = g.x + g.w / 2, fy = g.y + g.h * 0.5;
+    ctx.strokeStyle = '#d8dde4'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(fx, fy + 6); ctx.lineTo(fx, fy - 22); ctx.stroke();
+    ctx.fillStyle = '#1f3d7a'; ctx.beginPath(); ctx.moveTo(fx, fy - 22);
+    for (var k = 0; k <= 8; k++) ctx.lineTo(fx + k * 2.4, fy - 22 + Math.sin(flagT * 4 + k * 0.7) * 1.6);
+    for (var k2 = 8; k2 >= 0; k2--) ctx.lineTo(fx + k2 * 2.4, fy - 11 + Math.sin(flagT * 4 + k2 * 0.7) * 1.6);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#e4b84c'; ctx.beginPath(); ctx.arc(fx + 8, fy - 16.5 + Math.sin(flagT * 4 + 2.3) * 1.6, 2.2, 0, 7); ctx.fill();
+
+    // marching divisions
+    divisions.forEach(function (dv) {
+      dv.d += dv.speed * dt * (reduceMotion ? 0.4 : 1);
+      var sp = Math.max(4, Math.min(6, g.h * 0.09));
+      for (var row = 0; row < 4; row++) {
+        for (var col = 0; col < 3; col++) {
+          var p = grinderPath(dv.d - row * sp);
+          var off = (col - 1) * sp;
+          var bob = Math.sin(flagT * 9 + row) * 0.4;
+          ctx.fillStyle = '#9cc3ff';
+          ctx.beginPath(); ctx.arc(p.x - p.dy * off, p.y + p.dx * off + bob, 1.9, 0, 7); ctx.fill();
+        }
+      }
+      var lead = grinderPath(dv.d + sp * 1.3);
+      ctx.fillStyle = '#e4b84c'; ctx.beginPath(); ctx.arc(lead.x, lead.y, 2.3, 0, 7); ctx.fill();
+    });
+
+    // housing blocks
+    var hb = Math.min(4, S.house), tierColor = ['#8b8f6a', '#7d8590', '#a07a5a', '#5f7896', '#4f6a8f', '#6a6f8f', '#3f6f85'];
+    var tIdx = S.house >= 21 ? 6 : S.house >= 16 ? 5 : S.house >= 12 ? 4 : S.house >= 8 ? 3 : S.house >= 5 ? 2 : S.house >= 3 ? 1 : 0;
+    houseSlots.forEach(function (h, i) {
+      if (i < hb) {
+        var col = tierColor[tIdx];
+        ctx.fillStyle = 'rgba(0,0,0,.28)'; rr(h.x + 2, h.y + 3, h.w, h.h, 4); ctx.fill();
+        ctx.fillStyle = col; rr(h.x, h.y, h.w, h.h, 4); ctx.fill();
+        ctx.fillStyle = shade(col, -0.3); ctx.fillRect(h.x + 2, h.y + 2, h.w - 4, Math.max(3, h.h * 0.22));
+        ctx.fillStyle = 'rgba(255,240,180,.75)';
+        var wins = Math.max(2, Math.floor(h.w / 9));
+        for (var wI = 0; wI < wins; wI++) ctx.fillRect(h.x + 4 + wI * ((h.w - 8) / wins), h.y + h.h * 0.55, Math.max(2, (h.w - 8) / wins - 3), Math.max(2, h.h * 0.16));
+        if (i === 0) {
+          ctx.fillStyle = '#0a1424cc'; rr(h.x + h.w - 24, h.y + h.h - 13, 22, 12, 6); ctx.fill();
+          ctx.fillStyle = '#e4b84c'; ctx.font = '700 9px ' + getComputedStyle(document.body).fontFamily; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText('L' + S.house, h.x + h.w - 13, h.y + h.h - 7);
+        }
+      } else {
+        ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(255,255,255,.15)'; rr(h.x, h.y, h.w, h.h, 4); ctx.stroke(); ctx.setLineDash([]);
+      }
+    });
+
+    // facility plots
+    C.FAC.forEach(function (f, i) {
+      var p = plots[i], n = S.fac[f.id] || 0;
+      if (p.pulse > 0) p.pulse = Math.max(0, p.pulse - dt * 2.5);
+      if (!n) {
+        ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(255,255,255,.16)'; ctx.lineWidth = 1; rr(p.x, p.y, p.w, p.h, 5); ctx.stroke(); ctx.setLineDash([]);
+        return;
+      }
+      var s = 1 + p.pulse * 0.12, w = p.w * s, h = p.h * s, x = p.x - (w - p.w) / 2, y = p.y - (h - p.h) / 2;
+      ctx.fillStyle = 'rgba(0,0,0,.3)'; rr(x + 2, y + 3, w, h, 5); ctx.fill();
+      if (f.id === 'pool') {
+        ctx.fillStyle = '#c9d3dc'; rr(x, y, w, h, 5); ctx.fill();
+        ctx.fillStyle = '#2f8fc0'; rr(x + 3, y + 3, w - 6, h - 6, 3); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,.45)'; ctx.lineWidth = 1;
+        for (var ln = 1; ln < 4; ln++) { ctx.beginPath(); ctx.moveTo(x + 4, y + ln * h / 4); ctx.lineTo(x + w - 4, y + ln * h / 4); ctx.stroke(); }
+      } else {
+        ctx.fillStyle = f.color; rr(x, y, w, h, 5); ctx.fill();
+        ctx.fillStyle = shade(f.color, -0.32); rr(x, y, w, Math.max(5, h * 0.26), 5); ctx.fill();
+        ctx.fillRect(x, y + Math.max(5, h * 0.26) - 4, w, 4);
+      }
+      if (p.pulse > 0) { ctx.strokeStyle = 'rgba(228,184,76,' + p.pulse + ')'; ctx.lineWidth = 2; rr(x - 2, y - 2, w + 4, h + 4, 6); ctx.stroke(); }
+      ctx.font = Math.floor(Math.min(w, h) * 0.46) + 'px system-ui, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(f.icon, x + w / 2, y + h * 0.56);
+      var label = String(n), bw2 = 8 + label.length * 6;
+      ctx.fillStyle = '#0a1424dd'; rr(x + w - bw2 - 2, y + h - 14, bw2, 12, 6); ctx.fill();
+      ctx.fillStyle = '#e4b84c'; ctx.font = '700 10px ' + getComputedStyle(document.body).fontFamily;
+      ctx.fillText(label, x + w - bw2 / 2 - 2, y + h - 7.5);
+    });
+
+    // ripples
+    for (var ri = ripples.length - 1; ri >= 0; ri--) {
+      var rp = ripples[ri]; rp.t += dt;
+      if (rp.t > 0.45) { ripples.splice(ri, 1); continue; }
+      ctx.strokeStyle = 'rgba(228,184,76,' + (1 - rp.t / 0.45) * 0.8 + ')'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(rp.x, rp.y, 6 + rp.t * 70, 0, 7); ctx.stroke();
+    }
+    // mail call envelope
+    if (mail) {
+      mail.t += dt; mail.x += mail.vx * dt;
+      var my = mail.y + Math.sin(mail.t * 3) * 6;
+      if (mail.t > 14 || mail.x < -40 || mail.x > W + 40) mail = null;
+      else {
+        var ew = 34, eh = 23;
+        mail.cx = mail.x; mail.cy = my;
+        ctx.save(); ctx.translate(mail.x, my); ctx.rotate(Math.sin(mail.t * 2) * 0.12);
+        ctx.shadowColor = 'rgba(228,184,76,.9)'; ctx.shadowBlur = 14 + Math.sin(mail.t * 6) * 6;
+        ctx.fillStyle = '#f7f3e6'; rr(-ew / 2, -eh / 2, ew, eh, 3); ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = '#c94040'; ctx.lineWidth = 2; ctx.setLineDash([4, 3]); rr(-ew / 2 + 1, -eh / 2 + 1, ew - 2, eh - 2, 2); ctx.stroke(); ctx.setLineDash([]);
+        ctx.strokeStyle = '#7a6f5a'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(-ew / 2 + 2, -eh / 2 + 2); ctx.lineTo(0, 2); ctx.lineTo(ew / 2 - 2, -eh / 2 + 2); ctx.stroke();
+        ctx.fillStyle = '#1f3d7a'; ctx.fillRect(ew / 2 - 10, -eh / 2 + 3, 6, 6);
+        ctx.restore();
+        ctx.fillStyle = '#ffffff'; ctx.font = '700 10px ' + getComputedStyle(document.body).fontFamily; ctx.textAlign = 'center';
+        ctx.fillText('MAIL CALL!', mail.x, my - 20);
+      }
+    }
+    // floating numbers
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (var fi = floaters.length - 1; fi >= 0; fi--) {
+      var fl = floaters[fi]; fl.t += dt;
+      if (fl.t > 1) { floaters.splice(fi, 1); continue; }
+      ctx.globalAlpha = 1 - fl.t;
+      ctx.font = '700 ' + (fl.big ? 17 : 15) + 'px "Saira Stencil One", Impact, sans-serif';
+      ctx.fillStyle = '#0a1424'; ctx.fillText(fl.text, fl.x + 1, fl.y - fl.t * 46 + 1);
+      ctx.fillStyle = fl.color || '#e4b84c'; ctx.fillText(fl.text, fl.x, fl.y - fl.t * 46);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  /* ---------- tapping ---------- */
+  var hintGone = false;
+  function onPointer(e) {
+    e.preventDefault();
+    var r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+    if (mail && mail.cx !== undefined && Math.hypot(x - mail.cx, y - mail.cy) < 34) { openMail(); return; }
+    var gained = C.tap(S, D);
+    floaters.push({ x: x + (Math.random() * 16 - 8), y: y - 6, t: 0, text: '+' + money(gained) });
+    if (floaters.length > 28) floaters.shift();
+    if (!reduceMotion) ripples.push({ x: x, y: y, t: 0 });
+    sfx.tap(); buzz(false);
+    if (!hintGone && S.taps >= 8) { hintGone = true; $('hint').style.opacity = '0'; }
+  }
+  cv.addEventListener('pointerdown', onPointer);
+
+  /* ---------- mail call ---------- */
+  function spawnMail() {
+    var fromLeft = Math.random() < 0.5;
+    mail = { x: fromLeft ? -20 : W + 20, y: H * (0.3 + Math.random() * 0.4), vx: (fromLeft ? 1 : -1) * (W + 40) / 13, t: 0 };
+    sfx.mail();
+  }
+  function openMail() {
+    var x = mail.cx, y = mail.cy; mail = null;
+    S.mailCalls++;
+    var roll = Math.random(), len = D.mailLen, msg;
+    var rate = C.baseThroughput(D) * D.pay;
+    if (roll < 0.42 || rate <= 0) {
+      var amt = Math.max(rate * 600, C.tapGrads(S, D) * D.pay * 40, 50);
+      C.earn(S, amt, amt / D.pay);
+      msg = '<b>Care package from home!</b> +' + money(amt);
+      floaters.push({ x: x, y: y, t: 0, text: '+' + money(amt), big: true });
+    } else if (roll < 0.8) {
+      S.boosts.push({ kind: 'prod', mult: 7, until: S.played + 30 * len, label: 'Liberty Weekend ×7' });
+      msg = '<b>Liberty Weekend!</b> Base output ×7 for ' + 30 * len + 's';
+    } else {
+      S.boosts.push({ kind: 'tap', mult: 15, until: S.played + 20 * len, label: 'Hooyah! Taps ×15' });
+      msg = '<b>Hooyah!</b> Tap power ×15 for ' + 20 * len + 's. Tap fast!';
+    }
+    S.nextMail = S.played + (70 + Math.random() * 90) * D.mailFreq;
+    sfx.ach(); buzz(true); toast('✉️ ' + msg, 3400);
+    refresh(true);
+  }
+
+  /* ================= PANELS ================= */
+  var currentTab = 'build';
+  var lastSig = { build: '', upgrades: '', command: '' };
+
+  function setTab(t) {
+    currentTab = t;
+    document.querySelectorAll('.tabs button').forEach(function (b) { b.setAttribute('aria-selected', b.dataset.tab === t ? 'true' : 'false'); });
+    ['build', 'upgrades', 'command', 'more'].forEach(function (k) { $('pane-' + k).hidden = k !== t; });
+    $('panel').scrollTop = 0;
+    lastSig[t] = ''; renderPane(true);
+  }
+  document.querySelectorAll('.tabs button').forEach(function (b) { b.addEventListener('click', function () { setTab(b.dataset.tab); }); });
+
+  function buyQty(f) {
+    var owned = S.fac[f.id] || 0;
+    if (S.buyMode === 'max') { var n = C.maxAffordable(f, owned, S.money); return n || 1; }
+    return S.buyMode;
+  }
+
+  function visibleFacCount() {
+    var maxOwned = -1;
+    C.FAC.forEach(function (f, i) { if ((S.fac[f.id] || 0) > 0 || S.runEarned >= f.base * 0.6) maxOwned = Math.max(maxOwned, i); });
+    return Math.min(C.FAC.length, maxOwned + 2);
+  }
+
+  /* --- Build tab --- */
+  function renderBuild(force) {
+    var vis = visibleFacCount();
+    var sig = vis + '|' + S.buyMode + '|' + S.house;
+    var pane = $('pane-build');
+    if (force || sig !== lastSig.build) {
+      lastSig.build = sig;
+      var h = '<div class="buymode" role="group" aria-label="Buy quantity"><span>Buy</span>' +
+        [1, 10, 100, 'max'].map(function (m) { return '<button type="button" data-bm="' + m + '" aria-pressed="' + (S.buyMode === m) + '">' + (m === 'max' ? 'MAX' : '×' + m) + '</button>'; }).join('') + '</div>';
+      h += '<div class="row housing"><div class="ficon">🛏️<span class="cnt">' + S.house + '</span></div><div class="finfo">' +
+        '<div class="fname">Recruit Housing: ' + C.houseName(S.house) + '</div>' +
+        '<div class="fdesc">Every recruit needs a rack. Trainees beyond capacity wait in line and don\'t graduate.</div>' +
+        '<div class="frate" id="houseRate"></div></div>' +
+        '<button class="buy" type="button" data-house="1" id="houseBtn"><span class="q">Expand</span><span class="p" id="housePrice"></span></button></div>';
+      h += '<h2 class="section-title">Training Facilities</h2>';
+      C.FAC.forEach(function (f, i) {
+        if (i >= vis) return;
+        var owned = S.fac[f.id] || 0;
+        var classified = !owned && S.runEarned < f.base * 0.6 && i === vis - 1;
+        if (classified) {
+          h += '<div class="row classified"><div class="ficon">🔒</div><div class="finfo"><div class="fname">Classified Facility</div>' +
+            '<div class="fdesc">Earn ' + money(f.base * 0.6) + ' this command to declassify.</div></div><span></span></div>';
+          return;
+        }
+        h += '<div class="row" data-fac="' + f.id + '"><div class="ficon">' + f.icon + '<span class="cnt" data-cnt="' + f.id + '">' + owned + '</span></div>' +
+          '<div class="finfo"><div class="fname">' + f.name + '</div><div class="fdesc">' + f.desc + '</div><div class="frate" data-rate="' + f.id + '"></div></div>' +
+          '<button class="buy" type="button" data-buy="' + f.id + '"><span class="q" data-q="' + f.id + '"></span><span class="p" data-p="' + f.id + '"></span></button></div>';
+      });
+      pane.innerHTML = h;
+    }
+    // live values
+    var cap = D.capacity;
+    $('houseRate').textContent = 'Houses ' + fmt(cap, true) + ' grads/sec · next level ' + fmt(cap * 2.5, true) + '/sec';
+    var hc = C.houseCost(S);
+    $('housePrice').textContent = money(hc);
+    $('houseBtn').disabled = S.money < hc;
+    C.FAC.forEach(function (f) {
+      var btn = pane.querySelector('[data-buy="' + f.id + '"]'); if (!btn) return;
+      var owned = S.fac[f.id] || 0, n = buyQty(f), cost = C.facCost(f, owned, n);
+      pane.querySelector('[data-q="' + f.id + '"]').textContent = '×' + n;
+      pane.querySelector('[data-p="' + f.id + '"]').textContent = money(cost);
+      btn.disabled = S.money < cost;
+      pane.querySelector('[data-cnt="' + f.id + '"]').textContent = owned;
+      pane.querySelector('[data-rate="' + f.id + '"]').textContent = '+' + fmt(D.facRate[f.id], true) + '/sec each' + (owned ? ' · ' + fmt(D.facRate[f.id] * owned, true) + '/sec total' : '');
+    });
+  }
+
+  /* --- Upgrades tab --- */
+  function visibleUps() { return C.UP.filter(function (u) { return C.upVisible(S, u); }); }
+  function renderUpgrades(force) {
+    var list = visibleUps(), pane = $('pane-upgrades');
+    var sig = list.map(function (u) { return u.id; }).join(',');
+    if (force || sig !== lastSig.upgrades) {
+      lastSig.upgrades = sig;
+      var h = '<h2 class="section-title">Upgrades</h2><p class="sub">One-time improvements. New ones appear as your base grows.</p>';
+      if (list.length) {
+        h += '<button class="buy wide" type="button" id="buyAllUps"><span class="p">Buy all affordable</span></button>';
+        list.forEach(function (u) {
+          var tagText = u.kind === 'fac' ? 'Facility' : u.kind === 'pay' ? 'Contract' : u.kind === 'house' ? 'Housing' : (u.kind === 'tap' || u.kind === 'tapPct') ? 'Drill' : 'Mail';
+          h += '<div class="row upg"><div class="ficon">' + u.icon + '</div><div class="finfo"><span class="tag">' + tagText + '</span><div class="fname">' + esc(u.name) + '</div><div class="fdesc">' + esc(u.desc) + '</div></div>' +
+            '<button class="buy" type="button" data-up="' + u.id + '"><span class="q">Buy</span><span class="p">' + money(u.cost) + '</span></button></div>';
+        });
+      } else {
+        h += '<div class="empty">No upgrades available yet.<br>Build more facilities, tap the base, and earn funding to unlock them.</div>';
+      }
+      var owned = Object.keys(S.ups).length;
+      if (owned) h += '<p class="sub" style="margin-top:4px">' + owned + ' upgrade' + (owned > 1 ? 's' : '') + ' installed this command.</p>';
+      pane.innerHTML = h;
+    }
+    var anyAff = false;
+    pane.querySelectorAll('[data-up]').forEach(function (b) { var u = C.UP_BY_ID[b.dataset.up]; b.disabled = S.money < u.cost; if (!b.disabled) anyAff = true; });
+    var ba = $('buyAllUps'); if (ba) ba.disabled = !anyAff;
+  }
+
+  /* --- Command tab --- */
+  var prestigeArmed = 0;
+  function renderCommand(force) {
+    var pane = $('pane-command');
+    var ri = C.rankIndex(S.allEarned), pend = C.starsPending(S);
+    var sig = ri + '|' + pend + '|' + S.stars + '|' + Object.keys(S.ach).length + '|' + (prestigeArmed > Date.now());
+    if (force || sig !== lastSig.command) {
+      lastSig.command = sig;
+      var R = C.RANKS[ri], next = C.RANKS[ri + 1];
+      var h = '<div class="card"><span class="tag">Your rank</span><h3>' + R[1] + ' <span style="color:var(--brass)">(' + R[2] + ')</span></h3>' +
+        (next ? '<div class="progress"><i id="rankProg"></i></div><p id="rankNext"></p>' : '<p>The highest rank there is. Bravo Zulu, Admiral.</p>') + '</div>';
+      var bonus = Math.round(S.stars * 5);
+      h += '<div class="card"><span class="tag">Change of Command</span><h3>Commendations: <span style="color:var(--brass)">' + fmt(S.stars) + '</span></h3>' +
+        '<p>Each commendation permanently boosts all training and housing by 5%. Current bonus: <b style="color:var(--text)">+' + fmt(bonus) + '%</b>.</p>' +
+        '<p>Hand over this base to start a new command from scratch. You keep commendations, achievements and rank.</p>' +
+        '<div class="big">+' + fmt(pend) + ' <span style="font-size:15px;color:var(--muted);font-family:var(--font-body)">commendations if you hand over now</span></div>' +
+        (pend < 1 ? '<p id="nextStar"></p>' : '') +
+        '<button class="btn ' + (prestigeArmed > Date.now() ? 'danger armed' : 'primary') + '" type="button" id="prestigeBtn"' + (pend < 1 ? ' disabled style="opacity:.5"' : '') + '>' +
+        (prestigeArmed > Date.now() ? 'Tap again to confirm hand-over' : 'Hand over command') + '</button></div>';
+      h += '<h2 class="section-title">Service Record</h2><div class="stats" id="stats"></div>';
+      var got = Object.keys(S.ach).length;
+      h += '<h2 class="section-title">Ribbons ' + got + '/' + C.ACH.length + '</h2><p class="sub">Each ribbon adds +1% to all output.</p><div class="achs">' +
+        C.ACH.map(function (a) { return '<div class="ach' + (S.ach[a.id] ? ' got' : '') + '"><div class="n">' + (S.ach[a.id] ? '🎗️ ' : '') + a.name + '</div><div class="d">' + a.desc + '</div></div>'; }).join('') + '</div>';
+      pane.innerHTML = h;
+    }
+    var next2 = C.RANKS[ri + 1];
+    if (next2) {
+      var lo = C.RANKS[ri][0], pct = Math.min(1, (Math.log10(S.allEarned + 1) - Math.log10(lo + 1)) / (Math.log10(next2[0]) - Math.log10(lo + 1)));
+      $('rankProg').style.width = (pct * 100).toFixed(1) + '%';
+      $('rankNext').textContent = 'Promotion to ' + next2[1] + ' at ' + money(next2[0]) + ' total earned.';
+    }
+    var ns = $('nextStar');
+    if (ns) { var need = 1e10 * Math.pow((S.stars + 1) / 10, 3); ns.textContent = 'Next commendation at ' + money(need) + ' lifetime earnings (now ' + money(S.allEarned) + ').'; }
+    var st = [
+      ['Graduates (this command)', fmt(S.runGrads)], ['Graduates (career)', fmt(S.allGrads)],
+      ['Earned (this command)', money(S.runEarned)], ['Earned (career)', money(S.allEarned)],
+      ['Times tapped', fmt(S.taps)], ['Mail Calls opened', fmt(S.mailCalls)],
+      ['Time in command', dur(S.runPlayed)], ['Career time', dur(S.played)],
+      ['Training capacity', fmt(D.training, true) + '/s'], ['Housing capacity', fmt(D.capacity, true) + '/s']
+    ];
+    $('stats').innerHTML = st.map(function (s) { return '<div class="stat"><div class="k">' + s[0] + '</div><div class="v">' + s[1] + '</div></div>'; }).join('');
+  }
+
+  /* --- More tab --- */
+  var resetArmed = 0;
+  function renderMore() {
+    var pane = $('pane-more');
+    pane.innerHTML =
+      '<h2 class="section-title">Settings</h2>' +
+      '<div class="setting"><span>Sound effects</span><button class="toggle" type="button" role="switch" id="tSound" aria-checked="' + S.settings.sound + '" aria-label="Sound effects"></button></div>' +
+      '<div class="setting"><span>Vibration</span><button class="toggle" type="button" role="switch" id="tHaptic" aria-checked="' + S.settings.haptics + '" aria-label="Vibration"></button></div>' +
+      '<div class="card"><label for="nameInput" class="tag">Base name</label><input type="text" id="nameInput" maxlength="28" value="' + esc(S.baseName) + '"></div>' +
+      '<div class="card"><span class="tag">Backup</span><p>Copy this code to move your progress to another device.</p>' +
+      '<textarea id="exportBox" readonly></textarea><div class="btnrow"><button class="btn" type="button" id="copyBtn">Copy code</button></div>' +
+      '<label for="importBox" class="tag" style="margin-top:6px">Restore from code</label><textarea id="importBox" placeholder="Paste a backup code here"></textarea>' +
+      '<div class="btnrow"><button class="btn" type="button" id="importBtn">Load backup</button></div></div>' +
+      '<div class="card"><span class="tag">Danger zone</span><p>Erase everything, including commendations and ribbons.</p>' +
+      '<div class="btnrow"><button class="btn danger" type="button" id="resetBtn">Reset all progress</button></div></div>' +
+      '<p class="credit">Made for a brand-new Sailor waiting on a flight home.<br>Congratulations on graduating. Fair winds and following seas. ⚓</p>';
+    $('exportBox').value = exportCode();
+  }
+  function exportCode() { try { return btoa(unescape(encodeURIComponent(JSON.stringify(S)))); } catch (e) { return ''; } }
+
+  /* --- panel events (delegated) --- */
+  $('panel').addEventListener('click', function (e) {
+    var t = e.target.closest('button'); if (!t) return;
+    if (t.dataset.bm) { S.buyMode = t.dataset.bm === 'max' ? 'max' : +t.dataset.bm; renderBuild(true); return; }
+    if (t.dataset.buy) {
+      var f = C.FAC.filter(function (x) { return x.id === t.dataset.buy; })[0];
+      var n = buyQty(f);
+      if (C.buyFac(S, f, n)) { plots[C.FAC.indexOf(f)].pulse = 1; afterBuy(); } else sfx.no();
+      return;
+    }
+    if (t.dataset.house) { if (C.buyHouse(S)) { afterBuy(); toast('🛏️ Housing expanded to <b>Level ' + S.house + '</b> (' + C.houseName(S.house) + ')'); } else sfx.no(); return; }
+    if (t.dataset.up) { if (C.buyUp(S, C.UP_BY_ID[t.dataset.up])) afterBuy(); else sfx.no(); return; }
+    if (t.id === 'buyAllUps') {
+      var bought = 0;
+      visibleUps().forEach(function (u) { if (C.buyUp(S, u)) bought++; });
+      if (bought) { afterBuy(); toast('Installed <b>' + bought + '</b> upgrade' + (bought > 1 ? 's' : '')); }
+      return;
+    }
+    if (t.id === 'prestigeBtn') {
+      if (C.starsPending(S) < 1) return;
+      if (prestigeArmed > Date.now()) {
+        prestigeArmed = 0;
+        var gain = C.prestige(S);
+        D = C.derive(S); divisions = []; syncDivisions(); lastSig.build = ''; lastSig.upgrades = '';
+        sfx.promo(); buzz(true); save();
+        modal('🎖️', 'Change of Command', '<p>You handed over the base with honors and received <b style="color:var(--brass)">' + fmt(gain) + '</b> commendations.</p><p class="m">All output is now permanently +' + fmt(S.stars * 5) + '%. Time to build a new base.</p>', 'Take command', function () { setTab('build'); });
+      } else { prestigeArmed = Date.now() + 4000; setTimeout(function () { lastSig.command = ''; if (currentTab === 'command') renderCommand(true); }, 4100); }
+      renderCommand(true); return;
+    }
+    if (t.id === 'tSound') { S.settings.sound = !S.settings.sound; t.setAttribute('aria-checked', S.settings.sound); syncMute(); save(); return; }
+    if (t.id === 'tHaptic') { S.settings.haptics = !S.settings.haptics; t.setAttribute('aria-checked', S.settings.haptics); buzz(true); save(); return; }
+    if (t.id === 'copyBtn') {
+      var box = $('exportBox'); box.value = exportCode();
+      var done = function () { toast('Backup code copied'); };
+      try { navigator.clipboard.writeText(box.value).then(done, function () { box.select(); toast('Select the code and copy it'); }); } catch (err) { box.select(); }
+      return;
+    }
+    if (t.id === 'importBtn') {
+      try {
+        var obj = JSON.parse(decodeURIComponent(escape(atob($('importBox').value.trim()))));
+        if (typeof obj.money !== 'number') throw new Error('bad');
+        S = hydrate(obj); D = C.derive(S); divisions = []; syncDivisions(); save();
+        toast('Backup loaded'); lastSig = { build: '', upgrades: '', command: '' }; renderMore(); refresh(true);
+      } catch (err) { toast('That code didn\'t work. Copy the whole backup code and try again.'); }
+      return;
+    }
+    if (t.id === 'resetBtn') {
+      if (resetArmed > Date.now()) {
+        resetArmed = 0;
+        S = C.newState(); S.seenIntro = true; D = C.derive(S); divisions = []; syncDivisions(); save();
+        lastSig = { build: '', upgrades: '', command: '' }; toast('Progress erased. Welcome, Ensign.'); setTab('build'); refresh(true);
+      } else {
+        resetArmed = Date.now() + 4000; t.classList.add('armed'); t.textContent = 'Tap again to erase everything';
+        setTimeout(function () { if (t.isConnected) { t.classList.remove('armed'); t.textContent = 'Reset all progress'; } }, 4000);
+      }
+      return;
+    }
+  });
+  $('panel').addEventListener('input', function (e) {
+    if (e.target.id === 'nameInput') { S.baseName = e.target.value.trim() || 'RTC Lakeside'; $('baseName').textContent = S.baseName; }
+  });
+  $('panel').addEventListener('change', function (e) { if (e.target.id === 'nameInput') save(); });
+  $('capBar').addEventListener('click', function () { setTab('build'); });
+  $('muteBtn').addEventListener('click', function () { S.settings.sound = !S.settings.sound; syncMute(); save(); if (currentTab === 'more') renderMore(); });
+  function syncMute() { $('muteBtn').textContent = S.settings.sound ? '🔊' : '🔇'; }
+
+  function afterBuy() {
+    D = C.derive(S); syncDivisions(); sfx.buy(); buzz(false);
+    refresh(true);
+  }
+
+  /* ---------- header + refresh ---------- */
+  var lastRank = -1;
+  function renderHeader() {
+    $('money').textContent = money(S.money);
+    var tp = C.throughput(S, D);
+    $('mps').textContent = money(tp * D.pay);
+    $('gps').textContent = fmt(tp, true);
+    $('ppg').textContent = money(D.pay);
+    var full = D.training > D.capacity * 1.0001;
+    var pct = D.capacity > 0 ? Math.min(1, D.training / D.capacity) : 0;
+    $('capFill').style.width = (pct * 100).toFixed(1) + '%';
+    $('capBar').classList.toggle('full', full);
+    $('capText').textContent = full
+      ? 'Housing full! ' + fmt(D.training, true) + '/s trainees, room for ' + fmt(D.capacity, true) + '/s. Expand housing'
+      : 'Housing ' + Math.round(pct * 100) + '% used · room for ' + fmt(D.capacity, true) + ' grads/sec';
+    var ri = C.rankIndex(S.allEarned), R = C.RANKS[ri];
+    if (ri !== lastRank) {
+      $('rankChip').innerHTML = '<b>' + R[2] + '</b><span>' + R[1] + '</span>';
+      if (lastRank >= 0 && ri > lastRank) {
+        sfx.promo(); buzz(true);
+        modal('🎖️', 'Promoted!', '<p>Congress approves your promotion to <b style="color:var(--brass)">' + R[1] + '</b>.</p><p class="m">Your base has earned ' + money(S.allEarned) + ' in career funding.</p>', 'Aye aye');
+      }
+      lastRank = ri;
+    }
+    // boosts strip
+    var bh = S.boosts.filter(function (b) { return b.until > S.played; }).map(function (b) { return '<span class="boost">' + b.label + ' · ' + Math.ceil(b.until - S.played) + 's</span>'; }).join('');
+    if ($('boosts').innerHTML !== bh) $('boosts').innerHTML = bh;
+    // tab dots
+    $('upDot').hidden = !visibleUps().some(function (u) { return S.money >= u.cost; });
+    $('cmdDot').hidden = C.starsPending(S) < 1;
+  }
+  function renderPane(force) {
+    if (currentTab === 'build') renderBuild(force);
+    else if (currentTab === 'upgrades') renderUpgrades(force);
+    else if (currentTab === 'command') renderCommand(force);
+    else if (force) renderMore();
+  }
+  function refresh(force) { renderHeader(); renderPane(force); }
+
+  /* ---------- main loop ---------- */
+  var lastT = 0, uiAcc = 0, achAcc = 0, saveAcc = 0;
+  function frame(now) {
+    var dt = lastT ? (now - lastT) / 1000 : 0; lastT = now;
+    if (dt > 2) { applyAway(dt); dt = 0; }
+    dt = Math.min(dt, 0.25);
+    C.tick(S, D, dt);
+    if (!mail && S.played >= S.nextMail && C.FAC.some(function (f) { return S.fac[f.id]; })) { spawnMail(); S.nextMail = S.played + (70 + Math.random() * 90) * D.mailFreq + 14; }
+    drawMap(dt);
+    uiAcc += dt; achAcc += dt; saveAcc += dt;
+    if (uiAcc > 0.12) { uiAcc = 0; renderHeader(); if (currentTab !== 'more') renderPane(false); }
+    if (achAcc > 1) {
+      achAcc = 0;
+      var fresh = C.checkAch(S);
+      if (fresh.length) { D = C.derive(S); fresh.forEach(function (a) { toast('🎗️ Ribbon earned: <b>' + a.name + '</b> (+1% output)'); }); sfx.ach(); }
+      syncDivisions();
+    }
+    if (saveAcc > 5) { saveAcc = 0; save(); }
+    requestAnimationFrame(frame);
+  }
+
+  var hiddenAt = 0;
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) { hiddenAt = Date.now(); save(); }
+    else if (hiddenAt) { var away = (Date.now() - hiddenAt) / 1000; hiddenAt = 0; lastT = 0; applyAway(away); }
+  });
+  window.addEventListener('pagehide', save);
+  window.addEventListener('resize', function () { layout(); });
+
+  /* ---------- boot ---------- */
+  function start(prev) {
+    S = (prev && typeof prev.money === 'number') ? hydrate(prev) : (load() || C.newState());
+    D = C.derive(S);
+    $('baseName').textContent = S.baseName;
+    syncMute();
+    layout(); syncDivisions();
+    if (S.taps >= 8) { hintGone = true; $('hint').style.opacity = '0'; }
+    lastRank = C.rankIndex(S.allEarned);
+    refresh(true);
+    if (!S.seenIntro) {
+      modal('⚓', 'Congratulations, Sailor!',
+        '<p>You survived boot camp. Now the Navy wants you to <b>run one</b>.</p>' +
+        '<p class="m">Tap the base to drill recruits. Build training facilities, keep enough housing for every trainee, and collect a government check for every graduate. Grab the <b>Mail Call</b> envelope when it flies by.</p>',
+        'Aye aye, let\'s go', function () { S.seenIntro = true; save(); });
+    } else {
+      var away = (Date.now() - (S.last || Date.now())) / 1000;
+      applyAway(away, 'Welcome back, Commander');
+    }
+    requestAnimationFrame(frame);
+  }
+
+  var hot = window.claude && window.claude.hot;
+  if (hot && hot.snapshot) { try { hot.snapshot(function () { return { state: S }; }); } catch (e) {} }
+  var boot = function (data) { start(data && data.state); };
+  if (hot && hot.ready) hot.ready(boot); else boot((hot && hot.data) || {});
+})();
+</script>
