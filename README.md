@@ -2,6 +2,15 @@
 
 An idle clicker game where you run a Navy-style recruit training base. Tap to drill recruits, build training facilities, keep enough housing for every trainee, and collect a government check for every graduate.
 
+## Play it
+
+**https://taddsworth.github.io/boot-camp-commander/**
+
+- **iPhone:** open the link in **Safari** → tap **Share** → **Add to Home Screen**. It launches full-screen with its own icon and works offline once loaded.
+- **Android:** open in Chrome → menu → **Add to Home screen** (or install the APK, see below).
+
+Redeploy after changes: `npm run build`, then push the contents of `www/` to the `gh-pages` branch.
+
 ## Gameplay
 
 - **Tap the base map** to train recruits by hand.
