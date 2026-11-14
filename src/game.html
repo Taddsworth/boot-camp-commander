@@ -1,4 +1,4 @@
-﻿<title>Boot Camp Commander</title>
+<title>Boot Camp Commander</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -146,7 +146,7 @@ textarea { min-height: 80px; font-size: 12px; font-family: ui-monospace, Menlo, 
 .lb { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
 .lbrow { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 7px 9px; border-radius: 8px; background: var(--deck); font-variant-numeric: tabular-nums; }
 .lbrow .pos { font-family: var(--font-display); font-size: 16px; color: var(--muted); text-align: center; }
-.lbrow.top .pos { color: var(--brass); }
+.lbrow.podium .pos { color: var(--brass); }
 .lbrow .who { min-width: 0; display: grid; }
 .lbrow .who b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lbrow .who small { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -310,6 +310,25 @@ var Core = (function () {
   UP.sort(function (a, b) { return a.cost - b.cost; });
   var UP_BY_ID = {}; UP.forEach(function (u) { UP_BY_ID[u.id] = u; });
 
+  /* Staff: hire once, promote up to MAX_STAFF levels. Cost = base × 5^level. Reset on Change of Command. */
+  var MAX_STAFF = 10, STAFF_GROWTH = 5;
+  var STAFF = [
+    { id: 'di',      icon: '🧢', name: 'Drill Instructor',       base: 400,  per: '+25% tap power',                 desc: 'A voice that carries across the whole grinder.' },
+    { id: 'yeoman',  icon: '📋', name: 'Yeoman',                 base: 4e3,  per: '+10% pay per graduate',          desc: 'Files the paperwork that gets the government to pay up.' },
+    { id: 'cook',    icon: '🍳', name: 'Culinary Specialist',    base: 2e4,  per: '+15% housing capacity',          desc: 'Well-fed recruits sleep in tighter racks without complaint.' },
+    { id: 'postal',  icon: '📮', name: 'Postal Clerk',           base: 1e5,  per: 'Mail Call 7% more often, care packages +20%', desc: 'Sorts letters from home at record speed.' },
+    { id: 'seabee',  icon: '🐝', name: 'Seabee',                 base: 6e5,  per: 'Facilities 3% cheaper',          desc: 'Builds anything, anywhere, for less.' },
+    { id: 'band',    icon: '🎺', name: 'Bandmaster',             base: 3e6,  per: '+10% to the on-beat tap bonus',  desc: 'Keeps the whole base marching in time.' },
+    { id: 'to',      icon: '🧭', name: 'Training Officer',       base: 2e7,  per: '+20% minigame rewards',          desc: 'Designs drills that actually stick.' },
+    { id: 'chief',   icon: '⚓', name: 'Master Chief',           base: 2e8,  per: '+10% all output',                desc: 'Nothing on this base happens without the Chief knowing.' },
+    { id: 'corpsman',icon: '🩺', name: 'Corpsman',               base: 2e9,  per: '+2 hours of away earnings',      desc: 'Keeps the base healthy and running while you are gone.' },
+    { id: 'pao',     icon: '📸', name: 'Public Affairs Officer', base: 2e10, per: 'Commendations 10% stronger',     desc: 'Makes sure Washington hears about every success.' }
+  ];
+  function staffCost(st, level) { return st.base * Math.pow(STAFF_GROWTH, level); }
+
+  /* Minigames: one per facility. Score 0..1 pays out up to MG_SECONDS of base income. */
+  var MG_SECONDS = 45;
+
   var RANKS = [
     [0, 'Ensign', 'O-1'], [1e3, 'Lieutenant (JG)', 'O-2'], [1e4, 'Lieutenant', 'O-3'], [1e5, 'Lt. Commander', 'O-4'],
     [1e6, 'Commander', 'O-5'], [1e7, 'Captain', 'O-6'], [1e8, 'Rear Admiral (LH)', 'O-7'], [1e9, 'Rear Admiral', 'O-8'],
@@ -334,6 +353,11 @@ var Core = (function () {
     { id: 't4', name: 'Thumb of Steel', desc: 'Tap 10,000 times', t: function (s) { return s.taps >= 1e4; } },
     { id: 'r25', name: 'In Step', desc: 'Land 25 bonus taps in time with the music', t: function (s) { return (s.beatTaps || 0) >= 25; } },
     { id: 'r500', name: 'Drum Major', desc: 'Land 500 bonus taps in time with the music', t: function (s) { return (s.beatTaps || 0) >= 500; } },
+    { id: 'mg1', name: 'Hands-On Training', desc: 'Finish any facility minigame', t: function (s) { return Object.keys(s.mgBest || {}).length >= 1; } },
+    { id: 'mg5', name: 'Gold Standard', desc: 'Earn gold in 5 different minigames', t: function (s) { return Object.keys(s.mgBest || {}).filter(function (k) { return s.mgBest[k] >= 0.9; }).length >= 5; } },
+    { id: 'mg10', name: 'Honor Graduate', desc: 'Earn gold in every minigame', t: function (s) { return FAC.every(function (f) { return (s.mgBest || {})[f.id] >= 0.9; }); } },
+    { id: 'st1', name: 'First Hire', desc: 'Hire a staff member', t: function (s) { return Object.keys(s.staff || {}).length >= 1; } },
+    { id: 'st10', name: 'Full Wardroom', desc: 'Hire all 10 staff roles', t: function (s) { return STAFF.every(function (x) { return (s.staff || {})[x.id] > 0; }); } },
     { id: 'mc1', name: 'Mail Call!', desc: 'Open your first Mail Call', t: function (s) { return s.mailCalls >= 1; } },
     { id: 'mc10', name: 'Pen Pal', desc: 'Open 10 Mail Calls', t: function (s) { return s.mailCalls >= 10; } },
     { id: 'mc50', name: 'Fan Mail', desc: 'Open 50 Mail Calls', t: function (s) { return s.mailCalls >= 50; } },
@@ -353,13 +377,13 @@ var Core = (function () {
       fac: {}, house: 1, ups: {}, stars: 0, taps: 0, mailCalls: 0, ach: {}, prestiges: 0,
       boosts: [], played: 0, runPlayed: 0, last: Date.now(), nextMail: 40,
       settings: { sound: true, haptics: true, music: true, musicVol: 0.6 }, baseName: 'RTC Lakeside', buyMode: 1, seenIntro: false, seenVersion: '',
-      lbId: '', lbSecret: '', lbName: '', beatTaps: 0, seenRhythmTip: false
+      lbId: '', lbSecret: '', lbName: '', beatTaps: 0, seenRhythmTip: false, staff: {}, mgBest: {}, mgPlays: 0
     };
   }
 
-  function facCost(f, owned, n) { return f.base * Math.pow(GROWTH, owned) * (Math.pow(GROWTH, n) - 1) / (GROWTH - 1); }
-  function maxAffordable(f, owned, money) {
-    var c0 = f.base * Math.pow(GROWTH, owned);
+  function facCost(f, owned, n, mult) { return (mult || 1) * f.base * Math.pow(GROWTH, owned) * (Math.pow(GROWTH, n) - 1) / (GROWTH - 1); }
+  function maxAffordable(f, owned, money, mult) {
+    var c0 = (mult || 1) * f.base * Math.pow(GROWTH, owned);
     if (money < c0) return 0;
     return Math.max(1, Math.floor(Math.log(money * (GROWTH - 1) / c0 + 1) / Math.log(GROWTH)));
   }
@@ -368,7 +392,14 @@ var Core = (function () {
 
   /* Derived numbers, recomputed after any purchase. */
   function derive(s) {
-    var d = { global: (1 + 0.05 * s.stars) * (1 + 0.01 * Object.keys(s.ach).length), facMult: {}, facRate: {}, pay: BASE_PAY, tapMult: 1, tapPct: 0, houseMult: 1, mailFreq: 1, mailLen: 1 };
+    var L = function (id) { return Math.min(MAX_STAFF, (s.staff || {})[id] || 0); };
+    var d = {
+      global: (1 + 0.05 * s.stars * (1 + 0.1 * L('pao'))) * (1 + 0.01 * Object.keys(s.ach).length) * (1 + 0.1 * L('chief')),
+      facMult: {}, facRate: {}, pay: BASE_PAY * (1 + 0.1 * L('yeoman')), tapMult: 1 + 0.25 * L('di'), tapPct: 0,
+      houseMult: 1 + 0.15 * L('cook'), mailFreq: Math.pow(0.93, L('postal')), mailLen: 1, careMult: 1 + 0.2 * L('postal'),
+      costMult: 1 - 0.03 * L('seabee'), beatBonus: 0.5 + 0.1 * L('band'), mgMult: 1 + 0.2 * L('to'),
+      offlineCap: (12 + 2 * L('corpsman')) * 3600
+    };
     FAC.forEach(function (f) { d.facMult[f.id] = 1; });
     for (var id in s.ups) {
       var u = UP_BY_ID[id]; if (!u) continue;
@@ -416,8 +447,19 @@ var Core = (function () {
     if (r.mail && s.mailCalls < r.mail) return false;
     return true;
   }
-  function buyFac(s, f, n) {
-    var cost = facCost(f, s.fac[f.id] || 0, n);
+  function buyStaff(s, st) {
+    var lv = (s.staff || {})[st.id] || 0, c = staffCost(st, lv);
+    if (lv >= MAX_STAFF || s.money < c) return false;
+    s.money -= c; s.staff = s.staff || {}; s.staff[st.id] = lv + 1; return true;
+  }
+  function staffVisible(s, st) { return ((s.staff || {})[st.id] || 0) > 0 || s.runEarned >= st.base * 0.4; }
+  // Minigame payout for a 0..1 score: up to MG_SECONDS of base income (with an early-game floor from tap value).
+  function mgReward(s, d, frac) {
+    var perSec = Math.max(baseThroughput(d) * d.pay, tapGrads(s, d) * d.pay * 1.5);
+    return Math.max(0, frac) * MG_SECONDS * perSec * d.mgMult;
+  }
+  function buyFac(s, f, n, mult) {
+    var cost = facCost(f, s.fac[f.id] || 0, n, mult);
     if (n < 1 || s.money < cost) return false;
     s.money -= cost; s.fac[f.id] = (s.fac[f.id] || 0) + n; return true;
   }
@@ -430,7 +472,7 @@ var Core = (function () {
     var gain = starsPending(s); if (gain < 1) return 0;
     s.stars += gain; s.prestiges++;
     s.money = 0; s.runEarned = 0; s.runGrads = 0; s.runPlayed = 0;
-    s.fac = {}; s.house = 1; s.ups = {}; s.boosts = [];
+    s.fac = {}; s.house = 1; s.ups = {}; s.boosts = []; s.staff = {};
     return gain;
   }
   function rankIndex(allEarned) { var i = 0; RANKS.forEach(function (r, k) { if (allEarned >= r[0]) i = k; }); return i; }
@@ -442,6 +484,7 @@ var Core = (function () {
 
   return {
     FAC: FAC, UP: UP, UP_BY_ID: UP_BY_ID, RANKS: RANKS, ACH: ACH, GROWTH: GROWTH,
+    STAFF: STAFF, MAX_STAFF: MAX_STAFF, staffCost: staffCost, buyStaff: buyStaff, staffVisible: staffVisible, mgReward: mgReward,
     newState: newState, facCost: facCost, maxAffordable: maxAffordable, houseCost: houseCost, houseName: houseName,
     derive: derive, boostMult: boostMult, baseThroughput: baseThroughput, throughput: throughput, tapGrads: tapGrads,
     tick: tick, tap: tap, earn: earn, upVisible: upVisible, buyFac: buyFac, buyHouse: buyHouse, buyUp: buyUp,
@@ -505,8 +548,8 @@ if (typeof module !== 'undefined') module.exports = Core;
   }
 
   /* ---------- version + changelog (shown once after an update) ---------- */
-  var GAME_VERSION = '1.3.0';
-  var CHANGELOG = 'New: tap in time with the music for +50% per tap. The parade ground pulses on the beat. Leaderboard now updates live.';
+  var GAME_VERSION = '1.3.1';
+  var CHANGELOG = 'Fixed: the leaderboard now shows every player, and the bottom bar is no longer cut off. Tap in time with the music for +50% per tap.';
 
   /* ---------- shared audio context ---------- */
   var actx = null;
@@ -1258,7 +1301,7 @@ if (typeof module !== 'undefined') module.exports = Core;
         h += '<ol class="lb">' + lbState.rows.map(function (r, i) {
           var me = r.player_id === S.lbId, R = C.RANKS[Math.min(r.rank_index || 0, C.RANKS.length - 1)];
           var val = lbSort === 'earned' ? money(r.career_earned) : fmt(r.graduates);
-          return '<li class="lbrow' + (me ? ' me' : '') + (i < 3 ? ' top' : '') + '"><span class="pos">' + (i + 1) + '</span>' +
+          return '<li class="lbrow' + (me ? ' me' : '') + (i < 3 ? ' podium' : '') + '"><span class="pos">' + (i + 1) + '</span>' +
             '<span class="who"><b>' + esc(r.name) + (me ? ' (you)' : '') + '</b><small>' + esc(R[2]) + ' · ' + esc(r.base_name || '') + '</small></span>' +
             '<span class="val">' + val + '</span></li>';
         }).join('') + '</ol>';

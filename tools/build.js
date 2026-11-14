@@ -3,7 +3,8 @@
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const root = path.join(__dirname, '..');
 const www = path.join(root, 'www');
-const body = fs.readFileSync(path.join(root, 'src', 'game.html'), 'utf8');
+// Strip a UTF-8 byte-order mark: inside <body> it renders as a blank text line and pushes the layout down.
+const body = fs.readFileSync(path.join(root, 'src', 'game.html'), 'utf8').replace(/^﻿/, '');
 const pkg = require(path.join(root, 'package.json'));
 
 const scripts = [...body.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)];
