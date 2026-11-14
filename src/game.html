@@ -502,8 +502,8 @@ if (typeof module !== 'undefined') module.exports = Core;
   }
 
   /* ---------- version + changelog (shown once after an update) ---------- */
-  var GAME_VERSION = '1.1.0';
-  var CHANGELOG = 'New: a Navy soundtrack with 5 tracks, plus in-app updates. Your progress carried over.';
+  var GAME_VERSION = '1.2.0';
+  var CHANGELOG = 'New: global leaderboards (Command tab) and a Navy soundtrack. Your progress carried over.';
 
   /* ---------- shared audio context ---------- */
   var actx = null;
@@ -1147,7 +1147,8 @@ if (typeof module !== 'undefined') module.exports = Core;
   }
 
   /* --- Global leaderboard (Supabase REST; see supabase/schema.sql) --- */
-  var LB = { url: '', key: '' };
+  // Public, read/submit-only key. Writes go through submit_score(), which checks each player's secret.
+  var LB = { url: 'https://giprzhyfrjphahplveeu.supabase.co', key: 'sb_publishable_rCuT_8w6_HDawG4xEYbqYQ_kGMy-024' };
   var LB_ON = !!(LB.url && LB.key);
   var lbSort = 'earned', lbState = { rows: null, error: '', me: 0, total: 0, at: 0, sort: '' }, lbBusy = false;
   function lbHeaders(extra) {
