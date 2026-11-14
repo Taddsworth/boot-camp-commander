@@ -152,6 +152,7 @@ textarea { min-height: 80px; font-size: 12px; font-family: ui-monospace, Menlo, 
 .lbrow .who small { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lbrow .val { font-weight: 700; color: var(--text); }
 .lbrow.me { outline: 2px solid var(--brass); background: #3a2f12; }
+.boost.groove { background: var(--sea); color: var(--ink); }
 .update-banner { position: fixed; z-index: 70; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 70px); width: min(440px, calc(100% - 32px)); padding: 12px 14px; border-radius: 12px; border: 0; background: var(--brass); color: var(--brass-ink); font-weight: 700; font-size: 14px; line-height: 1.35; box-shadow: 0 10px 30px #000b; }
 input[type="range"] { width: 100%; accent-color: var(--brass); }
 @keyframes tin { from { transform: translateY(-12px); opacity: 0; } }
@@ -331,6 +332,8 @@ var Core = (function () {
     { id: 't2', name: 'Sore Thumb', desc: 'Tap 100 times', t: function (s) { return s.taps >= 100; } },
     { id: 't3', name: 'Drill Thumb', desc: 'Tap 1,000 times', t: function (s) { return s.taps >= 1e3; } },
     { id: 't4', name: 'Thumb of Steel', desc: 'Tap 10,000 times', t: function (s) { return s.taps >= 1e4; } },
+    { id: 'r25', name: 'In Step', desc: 'Land 25 bonus taps in time with the music', t: function (s) { return (s.beatTaps || 0) >= 25; } },
+    { id: 'r500', name: 'Drum Major', desc: 'Land 500 bonus taps in time with the music', t: function (s) { return (s.beatTaps || 0) >= 500; } },
     { id: 'mc1', name: 'Mail Call!', desc: 'Open your first Mail Call', t: function (s) { return s.mailCalls >= 1; } },
     { id: 'mc10', name: 'Pen Pal', desc: 'Open 10 Mail Calls', t: function (s) { return s.mailCalls >= 10; } },
     { id: 'mc50', name: 'Fan Mail', desc: 'Open 50 Mail Calls', t: function (s) { return s.mailCalls >= 50; } },
@@ -350,7 +353,7 @@ var Core = (function () {
       fac: {}, house: 1, ups: {}, stars: 0, taps: 0, mailCalls: 0, ach: {}, prestiges: 0,
       boosts: [], played: 0, runPlayed: 0, last: Date.now(), nextMail: 40,
       settings: { sound: true, haptics: true, music: true, musicVol: 0.6 }, baseName: 'RTC Lakeside', buyMode: 1, seenIntro: false, seenVersion: '',
-      lbId: '', lbSecret: '', lbName: ''
+      lbId: '', lbSecret: '', lbName: '', beatTaps: 0, seenRhythmTip: false
     };
   }
 
@@ -401,7 +404,7 @@ var Core = (function () {
     s.played += dt; s.runPlayed += dt;
     if (s.boosts.length) s.boosts = s.boosts.filter(function (b) { return b.until > s.played; });
   }
-  function tap(s, d) { var g = tapGrads(s, d); s.taps++; earn(s, g * d.pay, g); return g * d.pay; }
+  function tap(s, d, mult) { var g = tapGrads(s, d) * (mult || 1); s.taps++; earn(s, g * d.pay, g); return g * d.pay; }
 
   function upVisible(s, u) {
     if (s.ups[u.id]) return false;
@@ -502,8 +505,8 @@ if (typeof module !== 'undefined') module.exports = Core;
   }
 
   /* ---------- version + changelog (shown once after an update) ---------- */
-  var GAME_VERSION = '1.2.1';
-  var CHANGELOG = 'Fixed: the leaderboard now shows live scores instead of an old snapshot.';
+  var GAME_VERSION = '1.3.0';
+  var CHANGELOG = 'New: tap in time with the music for +50% per tap. The parade ground pulses on the beat. Leaderboard now updates live.';
 
   /* ---------- shared audio context ---------- */
   var actx = null;
@@ -694,6 +697,15 @@ if (typeof module !== 'undefined') module.exports = Core;
       next: function () { var was = playing; stop(); idx = (idx + 1) % TRACKS.length; if (was) start(); else if (listener) listener(TRACKS[idx]); },
       setVolume: function (v) { vol = v; if (out && actx) out.gain.setTargetAtTime(v * 0.9, actx.currentTime, 0.05); },
       isPlaying: function () { return playing; },
+      // Where "now" (as heard, after output latency) sits on the current track's quarter-note grid.
+      beatInfo: function () {
+        if (!playing || !cur || !actx || actx.state !== 'running') return null;
+        var lat = actx.outputLatency || actx.baseLatency || 0;
+        var rel = actx.currentTime - lat - startT;
+        if (rel < 0 && cur.loop === 0) return null; // gap between tracks
+        var beatLen = cur.sd * 4, b = rel / beatLen, near = Math.round(b);
+        return { err: (b - near) * beatLen, beatLen: beatLen, phase: b - Math.floor(b) };
+      },
       track: function () { return TRACKS[idx]; },
       onTrack: function (fn) { listener = fn; },
       count: TRACKS.length
@@ -827,7 +839,8 @@ if (typeof module !== 'undefined') module.exports = Core;
     ctx.fillStyle = '#3d434d'; rr(g.x, g.y, g.w, g.h, 6); ctx.fill();
     ctx.strokeStyle = 'rgba(255,255,255,.22)'; ctx.lineWidth = 1;
     for (var lx = g.x + 14; lx < g.x + g.w - 6; lx += 18) { ctx.beginPath(); ctx.moveTo(lx, g.y + 5); ctx.lineTo(lx, g.y + g.h - 5); ctx.stroke(); }
-    ctx.strokeStyle = 'rgba(228,184,76,.55)'; ctx.lineWidth = 2; rr(g.x + 3, g.y + 3, g.w - 6, g.h - 6, 4); ctx.stroke();
+    var pulse = beatPulse();
+    ctx.strokeStyle = 'rgba(228,184,76,' + (0.45 + pulse * 0.55) + ')'; ctx.lineWidth = 2 + pulse * 2; rr(g.x + 3, g.y + 3, g.w - 6, g.h - 6, 4); ctx.stroke();
     // flag at grinder center
     var fx = g.x + g.w / 2, fy = g.y + g.h * 0.5;
     ctx.strokeStyle = '#d8dde4'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(fx, fy + 6); ctx.lineTo(fx, fy - 22); ctx.stroke();
@@ -845,7 +858,7 @@ if (typeof module !== 'undefined') module.exports = Core;
         for (var col = 0; col < 3; col++) {
           var p = grinderPath(dv.d - row * sp);
           var off = (col - 1) * sp;
-          var bob = Math.sin(flagT * 9 + row) * 0.4;
+          var bob = pulse ? -pulse * 1.3 : Math.sin(flagT * 9 + row) * 0.4;
           ctx.fillStyle = '#9cc3ff';
           ctx.beginPath(); ctx.arc(p.x - p.dy * off, p.y + p.dx * off + bob, 1.9, 0, 7); ctx.fill();
         }
@@ -952,14 +965,46 @@ if (typeof module !== 'undefined') module.exports = Core;
     e.preventDefault();
     var r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
     if (mail && mail.cx !== undefined && Math.hypot(x - mail.cx, y - mail.cy) < 34) { openMail(); return; }
-    var gained = C.tap(S, D);
-    floaters.push({ x: x + (Math.random() * 16 - 8), y: y - 6, t: 0, text: '+' + money(gained) });
+    var beat = rhythmCheck();
+    var gained = C.tap(S, D, beat === 'bonus' ? 1.5 : 1);
+    if (beat === 'bonus') S.beatTaps = (S.beatTaps || 0) + 1;
+    floaters.push({ x: x + (Math.random() * 16 - 8), y: y - 6, t: 0, text: '+' + money(gained) + (beat === 'bonus' ? ' ♪' : ''), color: beat === 'bonus' ? '#7fd3ff' : null, big: beat === 'bonus' });
     if (floaters.length > 28) floaters.shift();
     if (!reduceMotion) ripples.push({ x: x, y: y, t: 0 });
     sfx.tap(); buzz(false);
     if (!hintGone && S.taps >= 8) { hintGone = true; $('hint').style.opacity = '0'; }
   }
   cv.addEventListener('pointerdown', onPointer);
+
+  /* ---------- rhythm bonus: +50% for taps in time with the soundtrack ----------
+     A tap counts as "on beat" within ±WINDOW of a quarter note. The bonus only pays while at least 6 of the
+     last 8 taps were on beat, and tapping faster than the beat counts as a miss, so mashing never qualifies.
+     The heard-vs-scheduled delay (speakers, Bluetooth) is learned from near-hits and folded into `offset`. */
+  var groove = { hist: [], offset: 0, lastTap: -1, activeUntil: 0 };
+  function rhythmCheck() {
+    var bi = Music.beatInfo();
+    var now = performance.now() / 1000;
+    if (!bi) { groove.hist = []; groove.lastTap = now; return 'none'; }
+    var half = bi.beatLen / 2, err = bi.err - groove.offset;
+    if (err > half) err -= bi.beatLen; else if (err < -half) err += bi.beatLen;
+    var gap = groove.lastTap >= 0 ? now - groove.lastTap : 99;
+    var spam = gap < bi.beatLen * 0.6;
+    var ratio = gap / bi.beatLen, k = Math.round(ratio);
+    var steady = k >= 1 && k <= 2 && Math.abs(ratio - k) < 0.12; // evenly spaced taps: trust them to calibrate lag
+    groove.lastTap = now;
+    var win = Math.min(0.1, bi.beatLen * 0.2);
+    var hit = !spam && Math.abs(err) <= win;
+    if (!spam && (steady || Math.abs(err) <= win * 1.8)) groove.offset = Math.max(-0.35, Math.min(0.35, groove.offset + err * 0.15));
+    groove.hist.push(hit); if (groove.hist.length > 8) groove.hist.shift();
+    var hits = groove.hist.filter(Boolean).length;
+    if (hit && groove.hist.length >= 4 && hits / groove.hist.length >= 0.75) { groove.activeUntil = now + bi.beatLen * 2.2; return 'bonus'; }
+    return hit ? 'hit' : 'miss';
+  }
+  function beatPulse() {
+    var bi = Music.beatInfo(); if (!bi) return 0;
+    var p = bi.phase - groove.offset / bi.beatLen; p -= Math.floor(p);
+    return Math.exp(-p * 7);
+  }
 
   // Desktop: Space drills too (ignored while typing or holding the key down).
   var finePointer = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
@@ -1342,7 +1387,13 @@ if (typeof module !== 'undefined') module.exports = Core;
   function syncMute() { $('muteBtn').textContent = (S.settings.sound || S.settings.music) ? '🔊' : '🔇'; }
   function applyMusic() {
     Music.setVolume(S.settings.musicVol);
-    if (S.settings.music && !document.hidden) Music.start(); else Music.stop();
+    if (S.settings.music && !document.hidden) {
+      Music.start();
+      if (!S.seenRhythmTip && S.seenIntro) {
+        S.seenRhythmTip = true; save();
+        setTimeout(function () { toast('🥁 <b>Tip:</b> tap in time with the beat for <b>+50%</b> per tap. Watch the parade ground pulse. Mashing doesn\'t count!', 6000); }, 1500);
+      }
+    } else Music.stop();
   }
   function syncNowPlaying() {
     var el = $('nowPlaying'); if (!el) return;
@@ -1393,6 +1444,7 @@ if (typeof module !== 'undefined') module.exports = Core;
     }
     // boosts strip
     var bh = S.boosts.filter(function (b) { return b.until > S.played; }).map(function (b) { return '<span class="boost">' + b.label + ' · ' + Math.ceil(b.until - S.played) + 's</span>'; }).join('');
+    if (performance.now() / 1000 < groove.activeUntil) bh = '<span class="boost groove">♪ In step: taps +50%</span>' + bh;
     if ($('boosts').innerHTML !== bh) $('boosts').innerHTML = bh;
     // tab dots
     $('upDot').hidden = !visibleUps().some(function (u) { return S.money >= u.cost; });
