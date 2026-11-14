@@ -599,7 +599,7 @@ if (typeof module !== 'undefined') module.exports = Core;
   }
 
   /* ---------- version + changelog (shown once after an update) ---------- */
-  var GAME_VERSION = '1.4.0';
+  var GAME_VERSION = '1.4.1';
   var CHANGELOG = 'New: hire base Staff, play a training minigame at every facility (tap Train), and see your Service Record in the new Stats tab. Hand-overs now always earn commendations.';
 
   /* ---------- shared audio context ---------- */
@@ -1430,14 +1430,23 @@ if (typeof module !== 'undefined') module.exports = Core;
   GAMES.chamber = { title: 'Hold Your Breath', time: 18,
     how: 'Press and hold anywhere (or Space) to hold your breath as gas clouds drift through. Let go to breathe in the clear gaps. Your lungs only last about 4 seconds, so time it.',
     make: function (api) {
-      var holding = false, air = 1, exposure = 0, clouds = [], spawnT = 0.6, gasp = 0, cough = 0, t = 0;
+      var holding = false, air = 1, exposure = 0, clouds = [], gasp = 0, cough = 0, t = 0;
+      // Schedule clouds by when they reach the face, so gas never lasts longer than ~2.6s
+      // and each clear gap is long enough to refill your lungs. Skill, not luck.
+      var nextEnter = 2.4, pending = null;
+      function plan() {
+        var sp = rnd(0.16, 0.26), w = Math.min(rnd(0.18, 0.32), sp * 1.3);
+        pending = { dir: Math.random() < 0.5 ? 1 : -1, w: w, sp: sp, at: nextEnter - 0.5 / sp };
+        nextEnter += 2 * w / sp + rnd(1.8, 2.6);
+      }
+      plan();
       return {
         update: function (dt) {
-          t += dt; spawnT -= dt;
-          if (spawnT <= 0) {
-            var dir = Math.random() < 0.5 ? 1 : -1, w = rnd(0.18, 0.32), sp = rnd(0.16, 0.26);
-            clouds.push({ x: dir > 0 ? -w : 1 + w, w: w, v: dir * sp, puff: Math.random() * 10 });
-            spawnT = (w * 2 / sp) * rnd(0.85, 1.25) + rnd(0.6, 1.4);
+          t += dt;
+          while (pending.at <= t) {
+            var p = pending, x0 = (p.dir > 0 ? -p.w : 1 + p.w) + p.dir * p.sp * (t - p.at);
+            clouds.push({ x: x0, w: p.w, v: p.dir * p.sp, puff: Math.random() * 10 });
+            plan();
           }
           clouds.forEach(function (cl) { cl.x += cl.v * dt; });
           clouds = clouds.filter(function (cl) { return cl.x > -0.6 && cl.x < 1.6; });
@@ -1488,11 +1497,11 @@ if (typeof module !== 'undefined') module.exports = Core;
             if (free.length) {
               var threat = Math.random() < 0.72, up = clamp(1.35 - t * 0.025, 0.75, 1.35);
               targets.push({ slot: free[Math.floor(Math.random() * free.length)], threat: threat, t: 0, up: up, hit: false });
-              if (threat) threats++;
             }
             spawnT = rnd(0.35, 0.75);
           }
-          targets.forEach(function (tg) { tg.t += dt; });
+          // Threats count once resolved (hit or escaped), so ones still up at the buzzer don't count against you.
+          targets.forEach(function (tg) { tg.t += dt; if (tg.threat && !tg.hit && !tg.gone && tg.t > tg.up) { tg.gone = true; threats++; } });
           targets = targets.filter(function (tg) { return tg.t < tg.up + 0.15 && !(tg.hit && tg.t > tg.hitT + 0.25); });
           shots.forEach(function (s) { s.t += dt; }); shots = shots.filter(function (s) { return s.t < 0.4; });
           api.hud('Score ' + Math.max(0, pts).toFixed(1));
@@ -1507,7 +1516,8 @@ if (typeof module !== 'undefined') module.exports = Core;
             var p = S6[tg.slot];
             if (Math.abs(x - p.x) < R * 0.8 && y > p.y - R * 1.5 && y < p.y + R * 0.6) {
               hitAny = true; tg.hit = true; tg.hitT = tg.t;
-              if (tg.threat) { pts += 0.6 + 0.4 * clamp(1 - tg.t / tg.up, 0, 1); api.sfx.good(); }
+              // Full credit for any hit within 0.55s; slower hits taper to 0.7.
+              if (tg.threat) { threats++; pts += 1 - 0.3 * clamp((tg.t - 0.55) / Math.max(0.1, tg.up - 0.55), 0, 1); api.sfx.good(); }
               else { pts -= 1.5; api.sfx.bad(); }
             }
           });
@@ -1642,12 +1652,14 @@ if (typeof module !== 'undefined') module.exports = Core;
           vx += ((right ? 1 : 0) - (left ? 1 : 0)) * 0.9 * dt + cur * dt;
           vx *= Math.pow(0.55, dt); x = clamp(x + vx * dt, 0.05, 0.95); if (x === 0.05 || x === 0.95) vx = 0;
           spawnD -= dt * SPEED;
-          if (spawnD <= 0) { lastGx = clamp(lastGx + rnd(-0.32, 0.32), 0.22, 0.78); gates.push({ x: lastGx, y: -0.1, w: 0.2, done: false }); total++; spawnD = 0.6; }
+          if (spawnD <= 0) { lastGx = clamp(lastGx + rnd(-0.32, 0.32), 0.22, 0.78); gates.push({ x: lastGx, y: -0.1, w: 0.2, done: false }); spawnD = 0.6; }
           gates.forEach(function (g) {
             g.y += dt * SPEED;
             if (!g.done && g.y >= 0.78) {
-              g.done = true; var off = Math.abs(x - g.x);
-              if (off < g.w / 2) { passed++; var q = 1 - off / (g.w / 2); clean += 0.6 + 0.4 * q; api.sfx.good(); } else { shake = 1; api.sfx.bad(); }
+              // Count gates only when they reach the ship, so ones still downrange at the buzzer don't count against you.
+              g.done = true; total++; var off = Math.abs(x - g.x), half = g.w / 2;
+              // Full credit anywhere in the middle half of the gate, tapering to 0.6 at the buoys.
+              if (off < half) { passed++; clean += off <= half / 2 ? 1 : 0.6 + 0.4 * (1 - (off - half / 2) / (half / 2)); api.sfx.good(); } else { shake = 1; api.sfx.bad(); }
             }
           });
           gates = gates.filter(function (g) { return g.y < 1.2; });
@@ -1752,7 +1764,8 @@ if (typeof module !== 'undefined') module.exports = Core;
           for (var i = 0; i < grid.cols * grid.rows; i++) {
             var ce = cell(i, W, H);
             if (x >= ce.x && x < ce.x + ce.w && y >= ce.y && y < ce.y + ce.h) {
-              if (i === odd) { var p = 0.4 + 0.6 * clamp(1 - t / LIMIT, 0, 1); pts += p; fb = 'Gig line squared away! ' + t.toFixed(1) + 's'; fbCol = '#63c98f'; api.sfx.good(); }
+              // Full credit for any find within 3s; slower finds taper to 0.5 at the time limit.
+              if (i === odd) { var p = 1 - 0.5 * clamp((t - 3) / (LIMIT - 3), 0, 1); pts += p; fb = 'Gig line squared away! ' + t.toFixed(1) + 's'; fbCol = '#63c98f'; api.sfx.good(); }
               else { fb = 'That recruit is squared away'; fbCol = '#e0503f'; api.sfx.bad(); }
               state = 'gap'; t = 0; wait = 0.7; return;
             }
