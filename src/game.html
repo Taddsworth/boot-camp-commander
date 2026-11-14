@@ -125,8 +125,10 @@ textarea { min-height: 80px; font-size: 12px; font-family: ui-monospace, Menlo, 
 .credit { text-align: center; color: var(--muted); font-size: 13px; padding: 10px 0 4px; line-height: 1.5; }
 
 /* ---------- tabs ---------- */
-.tabs { flex: none; display: grid; grid-template-columns: repeat(4, 1fr); background: var(--hull); border-top: 1px solid var(--rail); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
-.tabs button { border: 0; background: none; padding: 9px 0 10px; display: grid; justify-items: center; gap: 1px; font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); position: relative; }
+.stat-head { margin: 6px 0 -2px; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--brass); font-weight: 700; }
+.since { display: block; font-size: 11px; font-weight: 500; color: var(--muted); }
+.tabs { flex: none; display: grid; grid-template-columns: repeat(6, 1fr); background: var(--hull); border-top: 1px solid var(--rail); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+.tabs button { border: 0; background: none; padding: 9px 0 10px; display: grid; justify-items: center; gap: 1px; font-size: 10.5px; font-weight: 700; letter-spacing: .04em; min-width: 0; text-transform: uppercase; color: var(--muted); position: relative; }
 .tabs button .ti { font-size: 19px; line-height: 1.1; filter: grayscale(.7); }
 .tabs button[aria-selected="true"] { color: var(--brass); }
 .tabs button[aria-selected="true"] .ti { filter: none; }
@@ -153,6 +155,32 @@ textarea { min-height: 80px; font-size: 12px; font-family: ui-monospace, Menlo, 
 .lbrow .val { font-weight: 700; color: var(--text); }
 .lbrow.me { outline: 2px solid var(--brass); background: #3a2f12; }
 .boost.groove { background: var(--sea); color: var(--ink); }
+
+/* ---------- staff + minigames ---------- */
+.lvl { font-size: 12px; font-weight: 700; color: var(--brass); letter-spacing: .06em; margin-left: 6px; }
+.mgbtn { justify-self: start; margin-top: 5px; padding: 5px 10px; border-radius: 8px; border: 1px solid var(--sea); background: transparent; color: var(--sea); font-weight: 700; font-size: 13px; }
+.mgbtn:hover { background: #5fb2d922; }
+.mg { position: fixed; inset: 0; z-index: 55; background: #050b16e6; display: grid; place-items: center; }
+.mg-card { width: min(560px, 100%); height: min(820px, 100%); background: var(--hull); display: flex; flex-direction: column; border: 1px solid var(--rail); padding-block: max(10px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-bottom, 0px)); padding-left: max(14px, env(safe-area-inset-left, 0px)); padding-right: max(14px, env(safe-area-inset-right, 0px)); gap: 8px; }
+@media (min-width: 600px) and (min-height: 700px) { .mg-card { border-radius: 16px; height: min(800px, calc(100% - 40px)); } }
+.mg-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.mg-titles { min-width: 0; }
+.mg-head h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 22px; color: var(--brass); line-height: 1.1; }
+.mg-hud { display: flex; justify-content: space-between; gap: 10px; font-weight: 700; font-size: 14px; color: var(--text); font-variant-numeric: tabular-nums; min-height: 20px; }
+.mg-stage { position: relative; flex: 1 1 auto; min-height: 0; border-radius: 12px; overflow: hidden; background: var(--ink); border: 1px solid var(--rail); touch-action: none; }
+#mgCanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.mg-screen { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 12px; padding: 20px; text-align: center; background: #0a1424e8; overflow-y: auto; }
+.mg-screen:empty { display: none; }
+.mg-screen .crest { font-size: 46px; line-height: 1; }
+.mg-screen h3 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 26px; color: var(--brass); text-wrap: balance; }
+.mg-screen p { margin: 0; max-width: 40ch; line-height: 1.45; color: var(--text); }
+.mg-screen p.m { color: var(--muted); font-size: 14px; }
+.mg-controls { display: flex; gap: 8px; }
+.mg-controls:empty { display: none; }
+.mg-controls button { flex: 1; min-height: 58px; border-radius: 12px; border: 1px solid var(--rail); background: var(--deck); font-weight: 700; font-size: 16px; touch-action: none; -webkit-user-select: none; user-select: none; }
+.mg-controls button:active, .mg-controls button.held { background: var(--brass); color: var(--brass-ink); border-color: var(--brass); }
+.mg-controls.quiz { flex-direction: column; }
+.mg-controls.quiz button { min-height: 50px; }
 .update-banner { position: fixed; z-index: 70; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 70px); width: min(440px, calc(100% - 32px)); padding: 12px 14px; border-radius: 12px; border: 0; background: var(--brass); color: var(--brass-ink); font-weight: 700; font-size: 14px; line-height: 1.35; box-shadow: 0 10px 30px #000b; }
 input[type="range"] { width: 100%; accent-color: var(--brass); }
 @keyframes tin { from { transform: translateY(-12px); opacity: 0; } }
@@ -212,20 +240,35 @@ input[type="range"] { width: 100%; accent-color: var(--brass); }
 
   <main class="panel" id="panel">
     <section class="tabpane" id="pane-build"></section>
+    <section class="tabpane" id="pane-staff" hidden></section>
     <section class="tabpane" id="pane-upgrades" hidden></section>
     <section class="tabpane" id="pane-command" hidden></section>
+    <section class="tabpane" id="pane-stats" hidden></section>
     <section class="tabpane" id="pane-more" hidden></section>
   </main>
 
   <nav class="tabs" role="tablist">
     <button role="tab" data-tab="build" aria-selected="true" type="button"><span class="ti">🏗️</span>Build</button>
+    <button role="tab" data-tab="staff" aria-selected="false" type="button"><span class="ti">👥</span>Staff<i class="dot" id="staffDot" hidden></i></button>
     <button role="tab" data-tab="upgrades" aria-selected="false" type="button"><span class="ti">⬆️</span>Upgrades<i class="dot" id="upDot" hidden></i></button>
     <button role="tab" data-tab="command" aria-selected="false" type="button"><span class="ti">🎖️</span>Command<i class="dot" id="cmdDot" hidden></i></button>
+    <button role="tab" data-tab="stats" aria-selected="false" type="button"><span class="ti">📊</span>Stats</button>
     <button role="tab" data-tab="more" aria-selected="false" type="button"><span class="ti">⚙️</span>More</button>
   </nav>
 </div>
 
 <div class="modal" id="modal" hidden><div class="modal-card" id="modalCard"></div></div>
+<div class="mg" id="mg" hidden role="dialog" aria-modal="true" aria-labelledby="mgTitle">
+  <div class="mg-card">
+    <div class="mg-head">
+      <div class="mg-titles"><span class="tag" id="mgFac"></span><h2 id="mgTitle"></h2></div>
+      <button class="iconbtn" id="mgClose" type="button" aria-label="Close training">✕</button>
+    </div>
+    <div class="mg-hud"><span id="mgHud"></span><span id="mgTime"></span></div>
+    <div class="mg-stage" id="mgStage"><canvas id="mgCanvas"></canvas><div class="mg-screen" id="mgScreen"></div></div>
+    <div class="mg-controls" id="mgControls"></div>
+  </div>
+</div>
 <div class="toasts" id="toasts"></div>
 <button class="update-banner" id="updateBanner" type="button" hidden>📨 New orders from HQ: an update is ready. Tap to install. Your progress is kept.</button>
 
@@ -310,19 +353,19 @@ var Core = (function () {
   UP.sort(function (a, b) { return a.cost - b.cost; });
   var UP_BY_ID = {}; UP.forEach(function (u) { UP_BY_ID[u.id] = u; });
 
-  /* Staff: hire once, promote up to MAX_STAFF levels. Cost = base × 5^level. Reset on Change of Command. */
-  var MAX_STAFF = 10, STAFF_GROWTH = 5;
+  /* Staff: hire once, promote up to MAX_STAFF levels. Cost = base × 7^level. Reset on Change of Command. */
+  var MAX_STAFF = 10, STAFF_GROWTH = 7;
   var STAFF = [
-    { id: 'di',      icon: '🧢', name: 'Drill Instructor',       base: 400,  per: '+25% tap power',                 desc: 'A voice that carries across the whole grinder.' },
-    { id: 'yeoman',  icon: '📋', name: 'Yeoman',                 base: 4e3,  per: '+10% pay per graduate',          desc: 'Files the paperwork that gets the government to pay up.' },
-    { id: 'cook',    icon: '🍳', name: 'Culinary Specialist',    base: 2e4,  per: '+15% housing capacity',          desc: 'Well-fed recruits sleep in tighter racks without complaint.' },
-    { id: 'postal',  icon: '📮', name: 'Postal Clerk',           base: 1e5,  per: 'Mail Call 7% more often, care packages +20%', desc: 'Sorts letters from home at record speed.' },
-    { id: 'seabee',  icon: '🐝', name: 'Seabee',                 base: 6e5,  per: 'Facilities 3% cheaper',          desc: 'Builds anything, anywhere, for less.' },
-    { id: 'band',    icon: '🎺', name: 'Bandmaster',             base: 3e6,  per: '+10% to the on-beat tap bonus',  desc: 'Keeps the whole base marching in time.' },
-    { id: 'to',      icon: '🧭', name: 'Training Officer',       base: 2e7,  per: '+20% minigame rewards',          desc: 'Designs drills that actually stick.' },
-    { id: 'chief',   icon: '⚓', name: 'Master Chief',           base: 2e8,  per: '+10% all output',                desc: 'Nothing on this base happens without the Chief knowing.' },
-    { id: 'corpsman',icon: '🩺', name: 'Corpsman',               base: 2e9,  per: '+2 hours of away earnings',      desc: 'Keeps the base healthy and running while you are gone.' },
-    { id: 'pao',     icon: '📸', name: 'Public Affairs Officer', base: 2e10, per: 'Commendations 10% stronger',     desc: 'Makes sure Washington hears about every success.' }
+    { id: 'di',      icon: '🧢', name: 'Drill Instructor',       base: 2e3,  per: '+25% tap power',                 desc: 'A voice that carries across the whole grinder.' },
+    { id: 'yeoman',  icon: '📋', name: 'Yeoman',                 base: 2.5e4,  per: '+10% pay per graduate',          desc: 'Files the paperwork that gets the government to pay up.' },
+    { id: 'cook',    icon: '🍳', name: 'Culinary Specialist',    base: 1e5,  per: '+15% housing capacity',          desc: 'Well-fed recruits sleep in tighter racks without complaint.' },
+    { id: 'postal',  icon: '📮', name: 'Postal Clerk',           base: 5e5,  per: 'Mail Call 7% more often, care packages +20%', desc: 'Sorts letters from home at record speed.' },
+    { id: 'seabee',  icon: '🐝', name: 'Seabee',                 base: 3e6,  per: 'Facilities 3% cheaper',          desc: 'Builds anything, anywhere, for less.' },
+    { id: 'band',    icon: '🎺', name: 'Bandmaster',             base: 1.5e7,  per: '+10% to the on-beat tap bonus',  desc: 'Keeps the whole base marching in time.' },
+    { id: 'to',      icon: '🧭', name: 'Training Officer',       base: 1e8,  per: '+20% minigame rewards',          desc: 'Designs drills that actually stick.' },
+    { id: 'chief',   icon: '⚓', name: 'Master Chief',           base: 1e9,  per: '+10% all output',                desc: 'Nothing on this base happens without the Chief knowing.' },
+    { id: 'corpsman',icon: '🩺', name: 'Corpsman',               base: 1e10,  per: '+2 hours of away earnings',      desc: 'Keeps the base healthy and running while you are gone.' },
+    { id: 'pao',     icon: '📸', name: 'Public Affairs Officer', base: 1e11, per: 'Commendations 10% stronger',     desc: 'Makes sure Washington hears about every success.' }
   ];
   function staffCost(st, level) { return st.base * Math.pow(STAFF_GROWTH, level); }
 
@@ -377,7 +420,8 @@ var Core = (function () {
       fac: {}, house: 1, ups: {}, stars: 0, taps: 0, mailCalls: 0, ach: {}, prestiges: 0,
       boosts: [], played: 0, runPlayed: 0, last: Date.now(), nextMail: 40,
       settings: { sound: true, haptics: true, music: true, musicVol: 0.6 }, baseName: 'RTC Lakeside', buyMode: 1, seenIntro: false, seenVersion: '',
-      lbId: '', lbSecret: '', lbName: '', beatTaps: 0, seenRhythmTip: false, staff: {}, mgBest: {}, mgPlays: 0
+      lbId: '', lbSecret: '', lbName: '', beatTaps: 0, seenRhythmTip: false, staff: {}, mgBest: {}, mgPlays: 0,
+      stats: null // filled (and backfilled for older saves) by initStats()
     };
   }
 
@@ -467,7 +511,14 @@ var Core = (function () {
   function buyUp(s, u) { if (!upVisible(s, u) || s.money < u.cost) return false; s.money -= u.cost; s.ups[u.id] = 1; return true; }
 
   function starsTotal(allEarned) { return Math.floor(10 * Math.cbrt(allEarned / 1e10)); }
-  function starsPending(s) { return Math.max(0, starsTotal(s.allEarned) - s.stars); }
+  // Commendations come from lifetime earnings OR from this command's own earnings, whichever is higher, so a big
+  // cash-in never locks you out of future hand-overs.
+  function starsPending(s) { return Math.max(0, starsTotal(s.allEarned) - s.stars, starsTotal(s.runEarned)); }
+  // Extra earnings needed before the pending count goes up by one.
+  function nextStarIn(s) {
+    var p = starsPending(s), cube = function (n) { return 1e10 * Math.pow(n / 10, 3); };
+    return Math.max(0, Math.min(cube(s.stars + p + 1) - s.allEarned, cube(p + 1) - s.runEarned));
+  }
   function prestige(s) {
     var gain = starsPending(s); if (gain < 1) return 0;
     s.stars += gain; s.prestiges++;
@@ -488,7 +539,7 @@ var Core = (function () {
     newState: newState, facCost: facCost, maxAffordable: maxAffordable, houseCost: houseCost, houseName: houseName,
     derive: derive, boostMult: boostMult, baseThroughput: baseThroughput, throughput: throughput, tapGrads: tapGrads,
     tick: tick, tap: tap, earn: earn, upVisible: upVisible, buyFac: buyFac, buyHouse: buyHouse, buyUp: buyUp,
-    starsTotal: starsTotal, starsPending: starsPending, prestige: prestige, rankIndex: rankIndex, checkAch: checkAch
+    starsTotal: starsTotal, starsPending: starsPending, nextStarIn: nextStarIn, prestige: prestige, rankIndex: rankIndex, checkAch: checkAch
   };
 })();
 if (typeof module !== 'undefined') module.exports = Core;
@@ -548,8 +599,8 @@ if (typeof module !== 'undefined') module.exports = Core;
   }
 
   /* ---------- version + changelog (shown once after an update) ---------- */
-  var GAME_VERSION = '1.3.1';
-  var CHANGELOG = 'Fixed: the leaderboard now shows every player, and the bottom bar is no longer cut off. Tap in time with the music for +50% per tap.';
+  var GAME_VERSION = '1.4.0';
+  var CHANGELOG = 'New: hire base Staff, play a training minigame at every facility (tap Train), and see your Service Record in the new Stats tab. Hand-overs now always earn commendations.';
 
   /* ---------- shared audio context ---------- */
   var actx = null;
@@ -802,15 +853,17 @@ if (typeof module !== 'undefined') module.exports = Core;
   /* ---------- offline progress ---------- */
   function applyAway(seconds, label) {
     if (seconds < 5) return;
-    var secs = Math.min(seconds, OFFLINE_CAP);
+    var cap = D.offlineCap || OFFLINE_CAP, capH = Math.round(cap / 3600);
+    var secs = Math.min(seconds, cap);
     var rate = C.baseThroughput(D);
     var g = rate * secs, m = g * D.pay;
     if (m <= 0) return;
     C.earn(S, m, g);
+    stat('awayEarned', m); statMax('longestAway', seconds);
     if (seconds >= 60) {
       modal('✈️', label || 'Welcome back, Commander',
         '<p>While you were away for <b>' + dur(seconds) + '</b>, your base graduated <b>' + fmt(g) + '</b> recruits and the government paid out <b style="color:var(--brass)">' + money(m) + '</b>.</p>' +
-        (seconds > OFFLINE_CAP ? '<p class="m">Away earnings cap at 12 hours.</p>' : '<p class="m">The base keeps training even when the app is closed, for up to 12 hours.</p>'),
+        (seconds > cap ? '<p class="m">Away earnings cap at ' + capH + ' hours. Promote your Corpsman to extend it.</p>' : '<p class="m">The base keeps training even when the app is closed, for up to ' + capH + ' hours.</p>'),
         'Carry on');
     }
   }
@@ -973,7 +1026,7 @@ if (typeof module !== 'undefined') module.exports = Core;
     if (mail) {
       mail.t += dt; mail.x += mail.vx * dt;
       var my = mail.y + Math.sin(mail.t * 3) * 6;
-      if (mail.t > 14 || mail.x < -40 || mail.x > W + 40) mail = null;
+      if (mail.t > 14 || mail.x < -40 || mail.x > W + 40) { mail = null; stat('mailMissed', 1); }
       else {
         var ew = 34, eh = 23;
         mail.cx = mail.x; mail.cy = my;
@@ -1003,14 +1056,17 @@ if (typeof module !== 'undefined') module.exports = Core;
   }
 
   /* ---------- tapping ---------- */
-  var hintGone = false;
+  var hintGone = false, tapTimes = [], beatStreak = 0, clickMoney = 0;
   function onPointer(e) {
     e.preventDefault();
     var r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
     if (mail && mail.cx !== undefined && Math.hypot(x - mail.cx, y - mail.cy) < 34) { openMail(); return; }
     var beat = rhythmCheck();
-    var gained = C.tap(S, D, beat === 'bonus' ? 1.5 : 1);
+    var gained = C.tap(S, D, beat === 'bonus' ? 1 + D.beatBonus : 1);
     if (beat === 'bonus') S.beatTaps = (S.beatTaps || 0) + 1;
+    stat('tapEarned', gained); statMax('bestTap', gained);
+    var nowMs = performance.now(); tapTimes.push(nowMs); while (tapTimes[0] < nowMs - 1000) tapTimes.shift(); statMax('maxTps', tapTimes.length);
+    beatStreak = beat === 'bonus' ? beatStreak + 1 : 0; statMax('bestBeatStreak', beatStreak);
     floaters.push({ x: x + (Math.random() * 16 - 8), y: y - 6, t: 0, text: '+' + money(gained) + (beat === 'bonus' ? ' ♪' : ''), color: beat === 'bonus' ? '#7fd3ff' : null, big: beat === 'bonus' });
     if (floaters.length > 28) floaters.shift();
     if (!reduceMotion) ripples.push({ x: x, y: y, t: 0 });
@@ -1055,7 +1111,7 @@ if (typeof module !== 'undefined') module.exports = Core;
   document.addEventListener('keydown', function (e) {
     if (e.code !== 'Space' || e.repeat) return;
     var tag = (e.target && e.target.tagName) || '';
-    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'BUTTON' || !$('modal').hidden) return;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'BUTTON' || !$('modal').hidden || MG.isOpen()) return;
     e.preventDefault();
     var r = cv.getBoundingClientRect();
     onPointer({ preventDefault: function () {}, clientX: r.left + r.width * (0.35 + Math.random() * 0.3), clientY: r.top + r.height * (0.4 + Math.random() * 0.2) });
@@ -1074,16 +1130,16 @@ if (typeof module !== 'undefined') module.exports = Core;
     var roll = Math.random(), len = D.mailLen, msg;
     var rate = C.baseThroughput(D) * D.pay;
     if (roll < 0.42 || rate <= 0) {
-      var amt = Math.max(rate * 600, C.tapGrads(S, D) * D.pay * 40, 50);
+      var amt = Math.max(rate * 600, C.tapGrads(S, D) * D.pay * 40, 50) * D.careMult;
       C.earn(S, amt, amt / D.pay);
-      msg = '<b>Care package from home!</b> +' + money(amt);
+      msg = '<b>Care package from home!</b> +' + money(amt); stat('mailPackages', 1);
       floaters.push({ x: x, y: y, t: 0, text: '+' + money(amt), big: true });
     } else if (roll < 0.8) {
       S.boosts.push({ kind: 'prod', mult: 7, until: S.played + 30 * len, label: 'Liberty Weekend ×7' });
-      msg = '<b>Liberty Weekend!</b> Base output ×7 for ' + 30 * len + 's';
+      msg = '<b>Liberty Weekend!</b> Base output ×7 for ' + 30 * len + 's'; stat('mailLiberty', 1);
     } else {
       S.boosts.push({ kind: 'tap', mult: 15, until: S.played + 20 * len, label: 'Hooyah! Taps ×15' });
-      msg = '<b>Hooyah!</b> Tap power ×15 for ' + 20 * len + 's. Tap fast!';
+      msg = '<b>Hooyah!</b> Tap power ×15 for ' + 20 * len + 's. Tap fast!'; stat('mailHooyah', 1);
     }
     S.nextMail = S.played + (70 + Math.random() * 90) * D.mailFreq;
     sfx.ach(); buzz(true); toast('✉️ ' + msg, 3400);
@@ -1092,12 +1148,12 @@ if (typeof module !== 'undefined') module.exports = Core;
 
   /* ================= PANELS ================= */
   var currentTab = 'build';
-  var lastSig = { build: '', upgrades: '', command: '' };
+  var lastSig = { build: '', upgrades: '', command: '', staff: '' };
 
   function setTab(t) {
     currentTab = t;
     document.querySelectorAll('.tabs button').forEach(function (b) { b.setAttribute('aria-selected', b.dataset.tab === t ? 'true' : 'false'); });
-    ['build', 'upgrades', 'command', 'more'].forEach(function (k) { $('pane-' + k).hidden = k !== t; });
+    ['build', 'staff', 'upgrades', 'command', 'stats', 'more'].forEach(function (k) { $('pane-' + k).hidden = k !== t; });
     $('panel').scrollTop = 0;
     lastSig[t] = ''; renderPane(true);
   }
@@ -1105,7 +1161,7 @@ if (typeof module !== 'undefined') module.exports = Core;
 
   function buyQty(f) {
     var owned = S.fac[f.id] || 0;
-    if (S.buyMode === 'max') { var n = C.maxAffordable(f, owned, S.money); return n || 1; }
+    if (S.buyMode === 'max') { var n = C.maxAffordable(f, owned, S.money, D.costMult); return n || 1; }
     return S.buyMode;
   }
 
@@ -1118,7 +1174,7 @@ if (typeof module !== 'undefined') module.exports = Core;
   /* --- Build tab --- */
   function renderBuild(force) {
     var vis = visibleFacCount();
-    var sig = vis + '|' + S.buyMode + '|' + S.house;
+    var sig = vis + '|' + S.buyMode + '|' + S.house + '|' + C.FAC.map(function (f) { return (S.fac[f.id] ? 1 : 0) + ':' + medalFor(S.mgBest[f.id]); }).join(',');
     var pane = $('pane-build');
     if (force || sig !== lastSig.build) {
       lastSig.build = sig;
@@ -1140,7 +1196,9 @@ if (typeof module !== 'undefined') module.exports = Core;
           return;
         }
         h += '<div class="row" data-fac="' + f.id + '"><div class="ficon">' + f.icon + '<span class="cnt" data-cnt="' + f.id + '">' + owned + '</span></div>' +
-          '<div class="finfo"><div class="fname">' + f.name + '</div><div class="fdesc">' + f.desc + '</div><div class="frate" data-rate="' + f.id + '"></div></div>' +
+          '<div class="finfo"><div class="fname">' + f.name + '</div><div class="fdesc">' + f.desc + '</div><div class="frate" data-rate="' + f.id + '"></div>' +
+          (owned && GAMES[f.id] ? '<button class="mgbtn" type="button" data-mg="' + f.id + '">▶ Train: ' + GAMES[f.id].title + (S.mgBest[f.id] !== undefined ? ' ' + medalIcon(S.mgBest[f.id]) : '') + '</button>' : '') +
+          '</div>' +
           '<button class="buy" type="button" data-buy="' + f.id + '"><span class="q" data-q="' + f.id + '"></span><span class="p" data-p="' + f.id + '"></span></button></div>';
       });
       pane.innerHTML = h;
@@ -1153,7 +1211,7 @@ if (typeof module !== 'undefined') module.exports = Core;
     $('houseBtn').disabled = S.money < hc;
     C.FAC.forEach(function (f) {
       var btn = pane.querySelector('[data-buy="' + f.id + '"]'); if (!btn) return;
-      var owned = S.fac[f.id] || 0, n = buyQty(f), cost = C.facCost(f, owned, n);
+      var owned = S.fac[f.id] || 0, n = buyQty(f), cost = C.facCost(f, owned, n, D.costMult);
       pane.querySelector('[data-q="' + f.id + '"]').textContent = '×' + n;
       pane.querySelector('[data-p="' + f.id + '"]').textContent = money(cost);
       btn.disabled = S.money < cost;
@@ -1161,6 +1219,666 @@ if (typeof module !== 'undefined') module.exports = Core;
       pane.querySelector('[data-rate="' + f.id + '"]').textContent = '+' + fmt(D.facRate[f.id], true) + '/sec each' + (owned ? ' · ' + fmt(D.facRate[f.id] * owned, true) + '/sec total' : '');
     });
   }
+
+  /* --- Staff tab --- */
+  function staffEffect(id, lv) {
+    switch (id) {
+      case 'di': return '+' + 25 * lv + '% tap power';
+      case 'yeoman': return '+' + 10 * lv + '% pay per graduate';
+      case 'cook': return '+' + 15 * lv + '% housing capacity';
+      case 'postal': return Math.round((1 - Math.pow(0.93, lv)) * 100) + '% more Mail Calls, +' + 20 * lv + '% packages';
+      case 'seabee': return '-' + 3 * lv + '% facility costs';
+      case 'band': return 'On-beat taps +' + (50 + 10 * lv) + '%';
+      case 'to': return '+' + 20 * lv + '% minigame rewards';
+      case 'chief': return '+' + 10 * lv + '% all output';
+      case 'corpsman': return (12 + 2 * lv) + 'h of away earnings';
+      case 'pao': return 'Commendations +' + (5 * (1 + 0.1 * lv)).toFixed(1) + '% each';
+    }
+    return '';
+  }
+  function renderStaff(force) {
+    var pane = $('pane-staff');
+    var vis = C.STAFF.filter(function (st) { return C.staffVisible(S, st); });
+    var locked = C.STAFF.filter(function (st) { return !C.staffVisible(S, st); })[0];
+    var sig = vis.map(function (st) { return st.id + (S.staff[st.id] || 0); }).join(',') + '|' + (locked ? locked.id : '');
+    if (force || sig !== lastSig.staff) {
+      lastSig.staff = sig;
+      var h = '<h2 class="section-title">Base Staff</h2><p class="sub">Hire specialists for permanent bonuses this command. Promote each up to level ' + C.MAX_STAFF + '. Staff move on when you hand over command.</p>';
+      vis.forEach(function (st) {
+        var lv = S.staff[st.id] || 0;
+        h += '<div class="row"><div class="ficon">' + st.icon + (lv ? '<span class="cnt">' + lv + '</span>' : '') + '</div><div class="finfo">' +
+          '<div class="fname">' + st.name + (lv ? '<span class="lvl">LV ' + lv + '/' + C.MAX_STAFF + '</span>' : '') + '</div>' +
+          '<div class="fdesc">' + st.desc + '</div>' +
+          '<div class="frate">' + (lv ? 'Now: ' + staffEffect(st.id, lv) + (lv < C.MAX_STAFF ? ' · Next: ' + staffEffect(st.id, lv + 1) : '') : 'Hire for: ' + staffEffect(st.id, 1)) + '</div></div>' +
+          (lv < C.MAX_STAFF
+            ? '<button class="buy" type="button" data-staff="' + st.id + '"><span class="q">' + (lv ? 'Promote' : 'Hire') + '</span><span class="p">' + money(C.staffCost(st, lv)) + '</span></button>'
+            : '<button class="buy" type="button" disabled><span class="q">Max</span><span class="p">LV ' + lv + '</span></button>') + '</div>';
+      });
+      if (locked) h += '<div class="row classified"><div class="ficon">🔒</div><div class="finfo"><div class="fname">' + locked.name + '</div><div class="fdesc">Earn ' + money(locked.base * 0.4) + ' this command to open this billet.</div></div><span></span></div>';
+      pane.innerHTML = h;
+    }
+    pane.querySelectorAll('[data-staff]').forEach(function (b) {
+      var st = C.STAFF.filter(function (x) { return x.id === b.dataset.staff; })[0];
+      b.disabled = S.money < C.staffCost(st, S.staff[st.id] || 0);
+    });
+  }
+
+  /* ================= FACILITY MINIGAMES ================= */
+  function medalFor(frac) { return frac === undefined ? '' : frac >= 0.9 ? 'gold' : frac >= 0.7 ? 'silver' : frac >= 0.4 ? 'bronze' : 'none'; }
+  function medalIcon(frac) { return { gold: '🥇', silver: '🥈', bronze: '🥉', none: '·', '': '' }[medalFor(frac)]; }
+  var DISPLAY_FONT = '"Saira Stencil One", Impact, sans-serif';
+  var BODY_FONT = '"Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif';
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function rnd(a, b) { return a + Math.random() * (b - a); }
+
+  var GAMES = {};
+
+  /* 1. Drill Hall: preparatory command, then the command of execution. Jumping the gun scores zero. */
+  GAMES.drill = { title: 'Facing Movements', time: 0,
+    how: 'The RDC calls a preparatory command ("Left…"), then the command of execution: "FACE!" Hit the matching direction only on "FACE!". Moving early, wrong-way turns and "As you were!" traps score zero.',
+    make: function (api) {
+      var DIRS = { left: { word: 'Left', ang: -Math.PI / 2 }, right: { word: 'Right', ang: Math.PI / 2 }, about: { word: 'About', ang: Math.PI } };
+      var ROUNDS = 8, round = 0, pts = 0, state = 'gap', t = 0, wait = 0.8, cmd = null, trap = false, facing = 0, msg = '', msgCol = '#e9eff7', flash = 0;
+      api.controls([{ id: 'left', label: '⟲ Left' }, { id: 'about', label: 'About ↻' }, { id: 'right', label: 'Right ⟳' }]);
+      function next() {
+        if (round >= ROUNDS) { api.end(pts / ROUNDS, Math.round(pts * 10) / 10 + ' / ' + ROUNDS + ' sharp movements'); return; }
+        round++; state = 'prep'; t = 0; wait = rnd(0.8, 2.1);
+        cmd = ['left', 'right', 'about'][Math.floor(Math.random() * 3)];
+        trap = round > 2 && Math.random() < 0.18; msg = '';
+      }
+      function result(p, text, col) { pts += p; msg = text; msgCol = col; state = 'gap'; t = 0; wait = 0.9; api.hud('Round ' + round + '/' + ROUNDS + ' · Score ' + (Math.round(pts * 10) / 10)); }
+      api.hud('Round 1/' + ROUNDS);
+      return {
+        update: function (dt) {
+          t += dt; flash = Math.max(0, flash - dt * 3);
+          if (state === 'gap' && t >= wait) next();
+          else if (state === 'prep' && t >= wait) {
+            if (trap) { state = 'trap'; t = 0; } else { state = 'exec'; t = 0; flash = 1; api.sfx.call(); }
+          } else if (state === 'exec' && t > 1.3) result(0, 'Too slow!', '#e0503f');
+          else if (state === 'trap' && t > 1.1) result(1, 'Good discipline!', '#63c98f');
+        },
+        press: function (id, type) {
+          if (type !== 'down') return;
+          if (state === 'prep') { api.sfx.bad(); result(0, 'You moved before "FACE!"', '#e0503f'); return; }
+          if (state === 'trap') { api.sfx.bad(); result(0, 'It was "As you were!"', '#e0503f'); return; }
+          if (state !== 'exec') return;
+          facing = (facing + DIRS[id].ang);
+          if (id !== cmd) { api.sfx.bad(); result(0, 'Wrong way!', '#e0503f'); return; }
+          var p = clamp(1 - (t - 0.28) / 0.7, 0.25, 1);
+          api.sfx.good(); result(p, p > 0.85 ? 'Sharp! ' + Math.round(t * 1000) + 'ms' : 'Good, ' + Math.round(t * 1000) + 'ms', '#63c98f');
+        },
+        key: function (code) { var m = { ArrowLeft: 'left', ArrowRight: 'right', ArrowDown: 'about', ArrowUp: 'about' }; if (m[code]) this.press(m[code], 'down'); },
+        draw: function (c, W, H) {
+          c.fillStyle = '#26303d'; c.fillRect(0, 0, W, H);
+          c.strokeStyle = 'rgba(255,255,255,.07)'; for (var x = 0; x < W; x += 30) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, H); c.stroke(); }
+          var cx = W / 2, cy = H * 0.62, r = Math.min(W, H) * 0.12;
+          c.save(); c.translate(cx, cy); c.rotate(facing);
+          c.fillStyle = '#1f3d7a'; c.beginPath(); c.ellipse(0, 0, r * 1.1, r * 0.7, 0, 0, 7); c.fill();
+          c.fillStyle = '#f2f2f2'; c.beginPath(); c.arc(0, 0, r * 0.5, 0, 7); c.fill();
+          c.fillStyle = '#e4b84c'; c.beginPath(); c.moveTo(0, -r * 0.95); c.lineTo(-r * 0.25, -r * 0.55); c.lineTo(r * 0.25, -r * 0.55); c.closePath(); c.fill();
+          c.restore();
+          c.textAlign = 'center'; c.textBaseline = 'middle';
+          var big = Math.min(W * 0.14, 64);
+          if (state === 'prep') { c.fillStyle = '#e9eff7'; c.font = big + 'px ' + DISPLAY_FONT; c.fillText(trap ? DIRS[cmd].word + '…' : DIRS[cmd].word + '…', cx, H * 0.24); }
+          if (state === 'exec') { c.fillStyle = 'rgba(228,184,76,' + (0.5 + flash * 0.5) + ')'; c.font = big * 1.2 + 'px ' + DISPLAY_FONT; c.fillText(DIRS[cmd].word + '… FACE!', cx, H * 0.24); }
+          if (state === 'trap') { c.fillStyle = '#5fb2d9'; c.font = big * 0.8 + 'px ' + DISPLAY_FONT; c.fillText('AS YOU WERE!', cx, H * 0.24); }
+          if (state === 'gap' && msg) { c.fillStyle = msgCol; c.font = '700 ' + Math.min(W * 0.06, 26) + 'px ' + BODY_FONT; c.fillText(msg, cx, H * 0.24); }
+        }
+      };
+    } };
+
+  /* 2. Classroom: phonetic alphabet and Navy terms against the clock. */
+  var PHONETIC = { A: ['Alfa', 'Able', 'Adam'], B: ['Bravo', 'Baker', 'Boston'], C: ['Charlie', 'Coco', 'Carlos'], D: ['Delta', 'Dog', 'David'], E: ['Echo', 'Easy', 'Edward'],
+    F: ['Foxtrot', 'Fox', 'Frank'], G: ['Golf', 'George', 'Gulf'], H: ['Hotel', 'How', 'Henry'], I: ['India', 'Item', 'Ida'], J: ['Juliett', 'Jig', 'John'], K: ['Kilo', 'King', 'Kite'],
+    L: ['Lima', 'Love', 'Lincoln'], M: ['Mike', 'Mary', 'Max'], N: ['November', 'Nan', 'Nancy'], O: ['Oscar', 'Oboe', 'Ocean'], P: ['Papa', 'Peter', 'Pluto'], Q: ['Quebec', 'Queen', 'Quick'],
+    R: ['Romeo', 'Roger', 'Robert'], S: ['Sierra', 'Sugar', 'Sam'], T: ['Tango', 'Tare', 'Tommy'], U: ['Uniform', 'Uncle', 'Union'], V: ['Victor', 'Victory', 'Venus'], W: ['Whiskey', 'William', 'Whale'],
+    X: ['X-ray', 'Xylophone', 'Xerox'], Y: ['Yankee', 'Yoke', 'Young'], Z: ['Zulu', 'Zebra', 'Zero'] };
+  var TERMS = [['Left side of a ship', 'Port'], ['Right side of a ship', 'Starboard'], ['Front of a ship', 'Bow'], ['Back of a ship', 'Stern'], ['Floor', 'Deck'],
+    ['Wall', 'Bulkhead'], ['Ceiling', 'Overhead'], ['Bathroom', 'Head'], ['Bed', 'Rack'], ['Kitchen', 'Galley'], ['Gossip (or a drinking fountain)', 'Scuttlebutt'],
+    ['Stairs', 'Ladder'], ['Door on a ship', 'Hatch'], ['Hat', 'Cover'], ['Pocket knife', 'Gig line'], ['Line of shirt seam, belt buckle and fly', 'Gig line'], ['Cleaning party', 'Field day'], ['Dining hall', 'Galley']];
+  TERMS = TERMS.filter(function (q) { return q[0] !== 'Pocket knife' && q[0] !== 'Dining hall'; });
+  GAMES.class = { title: 'Rapid Recall', time: 0,
+    how: 'Ten questions on the phonetic alphabet and Navy terms. Faster correct answers score more. Each question gives you 5 seconds.',
+    make: function (api) {
+      var Q = [], N = 10, LIMIT = 5;
+      shuffle(Object.keys(PHONETIC)).slice(0, 5).forEach(function (L) { var o = PHONETIC[L]; Q.push({ q: 'Phonetic word for “' + L + '”?', a: o[0], opts: shuffle(o.slice()) }); });
+      shuffle(TERMS.slice()).slice(0, 5).forEach(function (t) {
+        var wrong = shuffle(TERMS.filter(function (x) { return x[1] !== t[1]; }).map(function (x) { return x[1]; })).filter(function (v, i, a) { return a.indexOf(v) === i; }).slice(0, 2);
+        Q.push({ q: 'Navy word for: ' + t[0], a: t[1], opts: shuffle([t[1]].concat(wrong)) });
+      });
+      shuffle(Q);
+      var i = -1, t = 0, pts = 0, state = 'ask', fb = '', fbCol = '#63c98f', chosen = null;
+      function ask() {
+        i++; if (i >= N) { api.end(pts / N, Math.round(pts * 10) / 10 + ' / ' + N + ' points'); return; }
+        t = 0; state = 'ask'; chosen = null;
+        api.controls(Q[i].opts.map(function (o) { return { id: o, label: o }; }), 'quiz');
+        api.hud('Question ' + (i + 1) + '/' + N + ' · Score ' + Math.round(pts * 10) / 10);
+      }
+      function answer(o) {
+        if (state !== 'ask') return;
+        state = 'fb'; t = 0; chosen = o;
+        if (o === Q[i].a) { var p = 0.5 + 0.5 * clamp(1 - Q.tl / LIMIT, 0, 1); pts += p; fb = 'Correct!'; fbCol = '#63c98f'; api.sfx.good(); }
+        else { fb = o === null ? 'Time! It was ' + Q[i].a : 'It was ' + Q[i].a; fbCol = '#e0503f'; api.sfx.bad(); }
+      }
+      ask();
+      return {
+        update: function (dt) { t += dt; if (state === 'ask') { Q.tl = t; if (t > LIMIT) answer(null); } else if (t > 0.9) ask(); },
+        press: function (id, type) { if (type === 'down') answer(id); },
+        key: function (code) { var k = { Digit1: 0, Digit2: 1, Digit3: 2 }[code]; if (k !== undefined && Q[i]) answer(Q[i].opts[k]); },
+        draw: function (c, W, H) {
+          c.fillStyle = '#1d3b2e'; c.fillRect(0, 0, W, H);
+          c.strokeStyle = '#8a6a3c'; c.lineWidth = 10; c.strokeRect(5, 5, W - 10, H - 10);
+          if (!Q[i]) return;
+          c.fillStyle = '#eef3ea'; c.textAlign = 'center'; c.textBaseline = 'middle';
+          var fs = Math.min(W * 0.07, 30); c.font = '600 ' + fs + 'px ' + BODY_FONT;
+          var words = Q[i].q.split(' '), lines = [], ln = '';
+          words.forEach(function (w) { if (c.measureText(ln + ' ' + w).width > W * 0.82 && ln) { lines.push(ln); ln = w; } else ln = ln ? ln + ' ' + w : w; });
+          lines.push(ln);
+          lines.forEach(function (l, k) { c.fillText(l, W / 2, H * 0.4 + (k - (lines.length - 1) / 2) * fs * 1.25); });
+          var frac = state === 'ask' ? clamp(1 - t / LIMIT, 0, 1) : 0;
+          c.fillStyle = 'rgba(255,255,255,.15)'; c.fillRect(W * 0.1, H * 0.78, W * 0.8, 10);
+          c.fillStyle = frac > 0.3 ? '#e4b84c' : '#e0503f'; c.fillRect(W * 0.1, H * 0.78, W * 0.8 * frac, 10);
+          if (state === 'fb') { c.fillStyle = fbCol; c.font = '700 ' + fs + 'px ' + BODY_FONT; c.fillText(fb, W / 2, H * 0.66); }
+        }
+      };
+    } };
+
+  /* 3. Pool: tap as each shrinking ring meets the target. Taps with no ring nearby count as misses. */
+  GAMES.pool = { title: 'Swim Strokes', time: 0,
+    how: 'A ring shrinks toward the swimmer. Tap the moment it meets the target circle to take a clean stroke. Early, late or extra taps waste the stroke.',
+    make: function (api) {
+      var N = 14, k = 0, ring = null, gap = 0.5, pts = 0, dist = 0, fb = '', fbT = 0, fbCol = '#63c98f';
+      var APPROACH = 1.0;
+      function spawn() { if (k >= N) { api.end(pts / N, Math.round(pts * 10) / 10 + ' / ' + N + ' clean strokes'); return; } k++; ring = { t: 0, len: APPROACH * rnd(0.85, 1.1) }; }
+      function judge(err) {
+        var a = Math.abs(err), p = a <= 0.06 ? 1 : a <= 0.12 ? 0.7 : a <= 0.2 ? 0.35 : 0;
+        pts += p; dist += p; fb = p === 1 ? 'Perfect!' : p >= 0.7 ? 'Good' : p > 0 ? (err < 0 ? 'Early' : 'Late') : 'Miss';
+        fbCol = p >= 0.7 ? '#63c98f' : p > 0 ? '#e4b84c' : '#e0503f'; fbT = 0.6; ring = null; gap = rnd(0.25, 0.55);
+        if (p) api.sfx.good(); else api.sfx.bad();
+        api.hud('Stroke ' + k + '/' + N + ' · Score ' + Math.round(pts * 10) / 10);
+      }
+      api.hud('Stroke 1/' + N);
+      return {
+        update: function (dt) {
+          fbT = Math.max(0, fbT - dt);
+          if (ring) { ring.t += dt; if (ring.t > ring.len + 0.22) judge(1); }
+          else { gap -= dt; if (gap <= 0) spawn(); }
+        },
+        down: function () { if (ring) judge(ring.t - ring.len); else { pts = Math.max(0, pts - 0.25); fb = 'Splash! (no ring)'; fbCol = '#e0503f'; fbT = 0.5; api.sfx.bad(); } },
+        key: function (code) { if (code === 'Space') this.down(); },
+        draw: function (c, W, H) {
+          c.fillStyle = '#1f7fb0'; c.fillRect(0, 0, W, H);
+          c.strokeStyle = 'rgba(255,255,255,.35)'; c.setLineDash([12, 10]); c.lineWidth = 3;
+          [0.25, 0.75].forEach(function (y) { c.beginPath(); c.moveTo(0, H * y); c.lineTo(W, H * y); c.stroke(); }); c.setLineDash([]);
+          var sx = W * 0.12 + (W * 0.76) * (dist / N), sy = H * 0.5, R = Math.min(W, H) * 0.09;
+          c.fillStyle = '#f0c9a0'; c.beginPath(); c.arc(sx, sy, R * 0.45, 0, 7); c.fill();
+          c.fillStyle = '#e0503f'; c.beginPath(); c.arc(sx, sy - R * 0.12, R * 0.46, Math.PI, 0); c.fill();
+          c.strokeStyle = '#ffffff'; c.lineWidth = 3; c.beginPath(); c.arc(sx, sy, R, 0, 7); c.stroke();
+          if (ring) {
+            var f = clamp(1 - ring.t / ring.len, -0.3, 1), rr2 = R + f * R * 3.2;
+            c.strokeStyle = Math.abs(ring.t - ring.len) < 0.06 ? '#e4b84c' : 'rgba(255,255,255,.9)'; c.lineWidth = 4;
+            c.beginPath(); c.arc(sx, sy, Math.max(4, rr2), 0, 7); c.stroke();
+          }
+          if (fbT > 0) { c.globalAlpha = Math.min(1, fbT * 3); c.fillStyle = fbCol; c.textAlign = 'center'; c.font = '700 ' + Math.min(W * 0.07, 28) + 'px ' + BODY_FONT; c.fillText(fb, W / 2, H * 0.14); c.globalAlpha = 1; }
+          c.fillStyle = '#e4b84c'; c.fillRect(W * 0.9, H * 0.3, 6, H * 0.4);
+        }
+      };
+    } };
+
+  /* 4. Confidence Chamber: hold to hold your breath while gas drifts past; breathe in the gaps. */
+  GAMES.chamber = { title: 'Hold Your Breath', time: 18,
+    how: 'Press and hold anywhere (or Space) to hold your breath as gas clouds drift through. Let go to breathe in the clear gaps. Your lungs only last about 4 seconds, so time it.',
+    make: function (api) {
+      var holding = false, air = 1, exposure = 0, clouds = [], spawnT = 0.6, gasp = 0, cough = 0, t = 0;
+      return {
+        update: function (dt) {
+          t += dt; spawnT -= dt;
+          if (spawnT <= 0) {
+            var dir = Math.random() < 0.5 ? 1 : -1, w = rnd(0.18, 0.32), sp = rnd(0.16, 0.26);
+            clouds.push({ x: dir > 0 ? -w : 1 + w, w: w, v: dir * sp, puff: Math.random() * 10 });
+            spawnT = (w * 2 / sp) * rnd(0.85, 1.25) + rnd(0.6, 1.4);
+          }
+          clouds.forEach(function (cl) { cl.x += cl.v * dt; });
+          clouds = clouds.filter(function (cl) { return cl.x > -0.6 && cl.x < 1.6; });
+          var inGas = clouds.some(function (cl) { return Math.abs(cl.x - 0.5) < cl.w; });
+          if (gasp > 0) { gasp -= dt; holding = false; }
+          if (holding) { air -= dt / 4; if (air <= 0) { air = 0; gasp = 0.8; api.sfx.bad(); } }
+          else { air = Math.min(1, air + dt / 1.6); if (inGas) { exposure += dt; cough = 0.3; } }
+          cough = Math.max(0, cough - dt);
+          api.hud('Gas inhaled: ' + exposure.toFixed(1) + 's');
+        },
+        score: function () { return clamp(1 - exposure / 3.5, 0, 1); },
+        summary: function () { return exposure.toFixed(1) + 's of gas inhaled'; },
+        down: function () { if (gasp <= 0) holding = true; }, up: function () { holding = false; },
+        key: function (code, type) { if (code === 'Space') { if (type === 'down') this.down(); else this.up(); } },
+        draw: function (c, W, H) {
+          c.fillStyle = '#3a3f47'; c.fillRect(0, 0, W, H);
+          c.fillStyle = '#2c3037'; c.fillRect(0, H * 0.75, W, H * 0.25);
+          var cx = W / 2, cy = H * 0.52, R = Math.min(W, H) * 0.13;
+          clouds.forEach(function (cl) {
+            for (var i = 0; i < 6; i++) {
+              var px = (cl.x + Math.cos(cl.puff + i) * cl.w * 0.55) * W, py = cy + Math.sin(cl.puff * 2 + i * 1.7) * H * 0.12;
+              c.fillStyle = 'rgba(200,210,90,.28)'; c.beginPath(); c.arc(px, py, cl.w * W * 0.55, 0, 7); c.fill();
+            }
+          });
+          c.fillStyle = cough > 0 ? '#e7a0a0' : '#f0c9a0'; c.beginPath(); c.arc(cx, cy, R, 0, 7); c.fill();
+          c.fillStyle = '#20252c'; c.fillRect(cx - R * 0.7, cy - R * 0.25, R * 1.4, R * 0.35);
+          c.fillStyle = '#4a5160'; c.beginPath(); c.arc(cx, cy + R * 0.45, R * 0.42, 0, 7); c.fill();
+          if (holding) { c.fillStyle = '#5fb2d9'; c.font = '700 ' + R * 0.5 + 'px ' + BODY_FONT; c.textAlign = 'center'; c.fillText('Holding', cx, cy - R * 1.35); }
+          if (gasp > 0) { c.fillStyle = '#e0503f'; c.font = '700 ' + R * 0.5 + 'px ' + BODY_FONT; c.textAlign = 'center'; c.fillText('GASP!', cx, cy - R * 1.35); }
+          var bw = W * 0.6; c.fillStyle = 'rgba(255,255,255,.15)'; c.fillRect(cx - bw / 2, H * 0.86, bw, 14);
+          c.fillStyle = air > 0.3 ? '#5fb2d9' : '#e0503f'; c.fillRect(cx - bw / 2, H * 0.86, bw * air, 14);
+          c.fillStyle = '#e9eff7'; c.font = '600 13px ' + BODY_FONT; c.textAlign = 'center'; c.fillText('Lungs', cx, H * 0.86 - 8);
+        }
+      };
+    } };
+
+  /* 5. Small Arms Range: shoot threats, never the blue no-shoot targets. Empty shots cost points. */
+  GAMES.range = { title: 'Shoot / No-Shoot', time: 20,
+    how: 'Targets pop up downrange. Tap red threat targets fast. Never shoot the blue no-shoot targets. Missed shots cost points, so don\'t spray.',
+    make: function (api) {
+      var targets = [], spawnT = 0.5, pts = 0, threats = 0, t = 0, shots = [];
+      function slots(W, H) { var out = []; for (var r = 0; r < 2; r++) for (var c2i = 0; c2i < 3; c2i++) out.push({ x: W * (0.2 + c2i * 0.3), y: H * (0.38 + r * 0.32) }); return out; }
+      return {
+        update: function (dt, W, H) {
+          t += dt; spawnT -= dt;
+          if (spawnT <= 0) {
+            var S6 = slots(W, H), free = S6.map(function (_, i) { return i; }).filter(function (i) { return !targets.some(function (tg) { return tg.slot === i; }); });
+            if (free.length) {
+              var threat = Math.random() < 0.72, up = clamp(1.35 - t * 0.025, 0.75, 1.35);
+              targets.push({ slot: free[Math.floor(Math.random() * free.length)], threat: threat, t: 0, up: up, hit: false });
+              if (threat) threats++;
+            }
+            spawnT = rnd(0.35, 0.75);
+          }
+          targets.forEach(function (tg) { tg.t += dt; });
+          targets = targets.filter(function (tg) { return tg.t < tg.up + 0.15 && !(tg.hit && tg.t > tg.hitT + 0.25); });
+          shots.forEach(function (s) { s.t += dt; }); shots = shots.filter(function (s) { return s.t < 0.4; });
+          api.hud('Score ' + Math.max(0, pts).toFixed(1));
+        },
+        score: function () { return clamp(pts / Math.max(1, threats), 0, 1); },
+        summary: function () { return Math.max(0, pts).toFixed(1) + ' points from ' + threats + ' threats'; },
+        down: function (x, y, W, H) {
+          var S6 = slots(W, H), R = Math.min(W, H) * 0.11, hitAny = false;
+          shots.push({ x: x, y: y, t: 0 });
+          targets.forEach(function (tg) {
+            if (tg.hit || tg.t > tg.up) return;
+            var p = S6[tg.slot];
+            if (Math.abs(x - p.x) < R * 0.8 && y > p.y - R * 1.5 && y < p.y + R * 0.6) {
+              hitAny = true; tg.hit = true; tg.hitT = tg.t;
+              if (tg.threat) { pts += 0.6 + 0.4 * clamp(1 - tg.t / tg.up, 0, 1); api.sfx.good(); }
+              else { pts -= 1.5; api.sfx.bad(); }
+            }
+          });
+          if (!hitAny) { pts -= 0.25; api.sfx.tick(); }
+        },
+        draw: function (c, W, H) {
+          c.fillStyle = '#5b6e4a'; c.fillRect(0, 0, W, H);
+          c.fillStyle = '#7a6a4a'; c.fillRect(0, 0, W, H * 0.18);
+          c.fillStyle = '#4c5d3e'; for (var r = 0; r < 2; r++) c.fillRect(0, H * (0.42 + r * 0.32), W, H * 0.06);
+          var S6 = slots(W, H), R = Math.min(W, H) * 0.11;
+          targets.forEach(function (tg) {
+            var p = S6[tg.slot], rise = clamp(tg.t / 0.12, 0, 1) * clamp((tg.up + 0.15 - tg.t) / 0.15, 0, 1);
+            if (tg.hit) rise = clamp(1 - (tg.t - tg.hitT) / 0.25, 0, 1);
+            c.save(); c.translate(p.x, p.y + R * 0.6); c.scale(1, rise);
+            c.fillStyle = tg.threat ? '#c94a3a' : '#3f78c9';
+            c.beginPath(); c.arc(0, -R * 1.7, R * 0.42, 0, 7); c.fill();
+            c.beginPath(); c.moveTo(-R * 0.8, 0); c.lineTo(-R * 0.6, -R * 1.25); c.lineTo(R * 0.6, -R * 1.25); c.lineTo(R * 0.8, 0); c.closePath(); c.fill();
+            c.strokeStyle = '#ffffffcc'; c.lineWidth = 2;
+            if (tg.threat) { c.beginPath(); c.arc(0, -R * 0.75, R * 0.3, 0, 7); c.stroke(); c.beginPath(); c.arc(0, -R * 0.75, R * 0.1, 0, 7); c.stroke(); }
+            else { c.fillStyle = '#ffffff'; c.font = '700 ' + R * 0.32 + 'px ' + BODY_FONT; c.textAlign = 'center'; c.fillText('NO', 0, -R * 0.85); c.fillText('SHOOT', 0, -R * 0.5); }
+            c.restore();
+          });
+          shots.forEach(function (s) { c.strokeStyle = 'rgba(255,240,180,' + (1 - s.t / 0.4) + ')'; c.lineWidth = 2; c.beginPath(); c.arc(s.x, s.y, 6 + s.t * 30, 0, 7); c.stroke(); });
+        }
+      };
+    } };
+
+  /* 6. Firefighting: limited water, five compartments, fires that grow. Prioritise. */
+  GAMES.fire = { title: 'Fire Triage', time: 20,
+    how: 'Fires grow in five compartments. Tap a compartment to hit it with the hose. Water refills slowly, so attack the biggest threats first and don\'t let anything flash over.',
+    make: function (api) {
+      var F = [0, 0, 0, 0, 0], rate = [0, 0, 0, 0, 0], water = 1, t = 0, sum = 0, n = 0, spray = [];
+      // Tuned by simulation: random tapping averages ~9%, hosing the biggest fire first reaches gold.
+      F[1] = 20; rate[1] = 5; F[3] = 15; rate[3] = 5;
+      return {
+        update: function (dt) {
+          t += dt; water = Math.min(1, water + dt * 0.21);
+          for (var i = 0; i < 5; i++) {
+            if (F[i] > 0) { rate[i] += dt * 0.45; F[i] = Math.min(100, F[i] + rate[i] * dt); }
+            else if (Math.random() < dt * (0.22 + t * 0.012)) { F[i] = 12; rate[i] = rnd(5, 9); }
+          }
+          spray.forEach(function (s) { s.t += dt; }); spray = spray.filter(function (s) { return s.t < 0.35; });
+          var avg = F.reduce(function (a, b) { return a + b; }, 0) / 5; sum += avg * dt; n += dt;
+          api.hud('Avg fire ' + Math.round(avg) + '% · Water ' + Math.round(water * 100) + '%');
+        },
+        score: function () { var mean = sum / Math.max(n, 0.01); return clamp(1 - (mean - 4) / 18, 0, 1); },
+        summary: function () { return 'Average fire intensity ' + Math.round(sum / Math.max(n, 0.01)) + '%'; },
+        down: function (x, y, W) {
+          var i = clamp(Math.floor(x / (W / 5)), 0, 4);
+          var use = Math.min(water, 0.14), power = use / 0.14;
+          if (use < 0.03) { api.sfx.bad(); return; }
+          water -= use; F[i] = Math.max(0, F[i] - 24 * power); if (F[i] === 0) rate[i] = 0;
+          spray.push({ i: i, t: 0 }); api.sfx.tick();
+        },
+        draw: function (c, W, H) {
+          c.fillStyle = '#2a2c30'; c.fillRect(0, 0, W, H);
+          var cw = W / 5;
+          for (var i = 0; i < 5; i++) {
+            var x = i * cw, f = F[i] / 100;
+            c.fillStyle = f >= 1 ? '#5a1d14' : '#3a3d44'; c.fillRect(x + 4, H * 0.12, cw - 8, H * 0.62);
+            if (f > 0) {
+              var fh = H * 0.62 * (0.15 + f * 0.85);
+              var g = c.createLinearGradient(0, H * 0.74 - fh, 0, H * 0.74);
+              g.addColorStop(0, 'rgba(255,220,90,0)'); g.addColorStop(0.4, 'rgba(255,140,40,.85)'); g.addColorStop(1, 'rgba(220,60,30,.95)');
+              c.fillStyle = g;
+              c.beginPath(); c.moveTo(x + 6, H * 0.74);
+              for (var k = 0; k <= 6; k++) c.lineTo(x + 6 + (cw - 12) * k / 6, H * 0.74 - fh * (0.75 + 0.25 * Math.sin(t * 9 + k * 1.9 + i)));
+              c.lineTo(x + cw - 6, H * 0.74); c.closePath(); c.fill();
+            }
+            c.fillStyle = f >= 1 ? '#e0503f' : '#e9eff7'; c.font = '700 ' + Math.min(cw * 0.26, 18) + 'px ' + BODY_FONT; c.textAlign = 'center';
+            c.fillText(f >= 1 ? 'FLASHOVER' : Math.round(F[i]) + '%', x + cw / 2, H * 0.08);
+          }
+          spray.forEach(function (s) { c.fillStyle = 'rgba(160,210,255,' + (0.7 - s.t * 2) + ')'; c.fillRect(s.i * cw + cw * 0.25, H * 0.2, cw * 0.5, H * 0.6); });
+          c.fillStyle = 'rgba(255,255,255,.15)'; c.fillRect(W * 0.1, H * 0.85, W * 0.8, 14);
+          c.fillStyle = '#5fb2d9'; c.fillRect(W * 0.1, H * 0.85, W * 0.8 * water, 14);
+          c.fillStyle = '#e9eff7'; c.font = '600 13px ' + BODY_FONT; c.fillText('Water pressure', W / 2, H * 0.85 - 8);
+        }
+      };
+    } };
+
+  /* 7. Wet Trainer: stack swinging shoring beams. Overhang is cut off; a total miss ends the drill. */
+  GAMES.wet = { title: 'Shoring Stack', time: 0,
+    how: 'A shoring beam slides back and forth. Tap to drop it onto the stack. Any overhang gets cut off, so every miss makes the next drop harder. Stack 10 to hold back the flood.',
+    make: function (api) {
+      var N = 10, stack = [{ x: 0.3, w: 0.4 }], cur = null, acc = 0, placed = 0, falling = [], perfect = 0, water = 0;
+      function spawn() { var top = stack[stack.length - 1]; cur = { x: 0, w: top.w, dir: 1, v: 0.45 + placed * 0.07 }; }
+      spawn();
+      return {
+        update: function (dt) {
+          water = Math.min(0.6, water + dt * 0.012);
+          if (cur) { cur.x += cur.dir * cur.v * dt; if (cur.x + cur.w > 1) { cur.x = 1 - cur.w; cur.dir = -1; } if (cur.x < 0) { cur.x = 0; cur.dir = 1; } }
+          falling.forEach(function (f) { f.vy += dt * 2; f.y += f.vy * dt; }); falling = falling.filter(function (f) { return f.y < 1.5; });
+        },
+        down: function () {
+          if (!cur) return;
+          var top = stack[stack.length - 1];
+          if (Math.abs(cur.x - top.x) < 0.012) { cur.x = top.x; perfect++; }
+          var l = Math.max(cur.x, top.x), r = Math.min(cur.x + cur.w, top.x + top.w), ov = r - l;
+          placed++;
+          if (ov <= 0) { falling.push({ x: cur.x, w: cur.w, y: 0, vy: 0, lvl: stack.length }); api.sfx.bad(); cur = null; api.end(acc / N, placed - 1 + ' beams stacked before the miss'); return; }
+          acc += ov / cur.w;
+          if (cur.w - ov > 0.002) falling.push({ x: cur.x < top.x ? cur.x : r, w: cur.w - ov, y: 0, vy: 0, lvl: stack.length });
+          stack.push({ x: l, w: ov }); api.sfx.good();
+          api.hud('Beams ' + placed + '/' + N + ' · Accuracy ' + Math.round(acc / placed * 100) + '%');
+          if (placed >= N) { cur = null; api.end(acc / N, N + ' beams, ' + perfect + ' perfect'); return; }
+          spawn();
+        },
+        key: function (code) { if (code === 'Space') this.down(); },
+        draw: function (c, W, H) {
+          c.fillStyle = '#2f3a44'; c.fillRect(0, 0, W, H);
+          var bh = Math.min(H * 0.06, 26), base = H * 0.92, scroll = Math.max(0, (stack.length - 8) * bh);
+          c.fillStyle = 'rgba(60,140,190,.45)'; c.fillRect(0, H * (1 - water), W, H * water);
+          var beam = function (x, w, yy, col) { c.fillStyle = col; c.fillRect(x * W, yy, w * W, bh - 3); c.fillStyle = 'rgba(0,0,0,.18)'; c.fillRect(x * W, yy + bh - 7, w * W, 4); };
+          stack.forEach(function (s, i) { beam(s.x, s.w, base - (i + 1) * bh + scroll, i === 0 ? '#555c66' : '#b8874d'); });
+          falling.forEach(function (f) { beam(f.x, f.w, base - (f.lvl + 1) * bh + scroll + f.y * H, '#8a6538'); });
+          if (cur) beam(cur.x, cur.w, base - (stack.length + 1) * bh + scroll, '#d9a35e');
+        }
+      };
+    } };
+
+  /* 8. Ship simulator: steer with inertia through buoy gates while the current pushes you around. */
+  GAMES.ship = { title: 'Helm Control', time: 22,
+    how: 'Hold Port or Starboard (or the left/right side of the screen, or arrow keys) to steer. The ship drifts and the current shoves you sideways, so steer early. Pass between the red and green buoys.',
+    make: function (api) {
+      var x = 0.5, vx = 0, left = false, right = false, gates = [], spawnD = 0.2, passed = 0, clean = 0, total = 0, t = 0, shake = 0, lastGx = 0.5, scroll = 0;
+      api.controls([{ id: 'L', label: '◀ Port' }, { id: 'R', label: 'Starboard ▶' }]);
+      var SPEED = 0.38;
+      return {
+        update: function (dt) {
+          t += dt; shake = Math.max(0, shake - dt * 2); scroll += dt * SPEED;
+          var cur = Math.sin(t * 0.7) * 0.09 + Math.sin(t * 1.9) * 0.04;
+          vx += ((right ? 1 : 0) - (left ? 1 : 0)) * 0.9 * dt + cur * dt;
+          vx *= Math.pow(0.55, dt); x = clamp(x + vx * dt, 0.05, 0.95); if (x === 0.05 || x === 0.95) vx = 0;
+          spawnD -= dt * SPEED;
+          if (spawnD <= 0) { lastGx = clamp(lastGx + rnd(-0.32, 0.32), 0.22, 0.78); gates.push({ x: lastGx, y: -0.1, w: 0.2, done: false }); total++; spawnD = 0.6; }
+          gates.forEach(function (g) {
+            g.y += dt * SPEED;
+            if (!g.done && g.y >= 0.78) {
+              g.done = true; var off = Math.abs(x - g.x);
+              if (off < g.w / 2) { passed++; var q = 1 - off / (g.w / 2); clean += 0.6 + 0.4 * q; api.sfx.good(); } else { shake = 1; api.sfx.bad(); }
+            }
+          });
+          gates = gates.filter(function (g) { return g.y < 1.2; });
+          api.hud('Gates ' + passed + '/' + total);
+        },
+        score: function () { return clamp(clean / Math.max(1, total), 0, 1); },
+        summary: function () { return passed + ' of ' + total + ' gates'; },
+        press: function (id, type) { var on = type === 'down'; if (id === 'L') left = on; else right = on; },
+        down: function (px, py, W) { if (px < W / 2) left = true; else right = true; },
+        up: function () { left = right = false; },
+        key: function (code, type) { var on = type === 'down'; if (code === 'ArrowLeft') left = on; if (code === 'ArrowRight') right = on; },
+        draw: function (c, W, H) {
+          c.fillStyle = '#1b5f86'; c.fillRect(0, 0, W, H);
+          c.strokeStyle = 'rgba(255,255,255,.12)'; c.lineWidth = 2;
+          for (var k = 0; k < 12; k++) { var yy = ((k / 12 + scroll * 0.5) % 1) * H; c.beginPath(); c.moveTo(W * ((k * 37) % 100) / 100, yy); c.lineTo(W * ((k * 37) % 100) / 100 + 20, yy); c.stroke(); }
+          gates.forEach(function (g) {
+            var gy = g.y * H, r = Math.min(W, H) * 0.028;
+            c.fillStyle = '#d9473b'; c.beginPath(); c.arc((g.x - g.w / 2) * W, gy, r, 0, 7); c.fill();
+            c.fillStyle = '#3fae6a'; c.beginPath(); c.arc((g.x + g.w / 2) * W, gy, r, 0, 7); c.fill();
+            c.strokeStyle = 'rgba(255,255,255,.25)'; c.setLineDash([4, 6]); c.beginPath(); c.moveTo((g.x - g.w / 2) * W, gy); c.lineTo((g.x + g.w / 2) * W, gy); c.stroke(); c.setLineDash([]);
+          });
+          var sx = x * W + (shake ? Math.sin(t * 60) * 6 * shake : 0), sy = H * 0.8, L = Math.min(W, H) * 0.16;
+          c.save(); c.translate(sx, sy); c.rotate(vx * 0.8);
+          c.fillStyle = '#c9ced6'; c.beginPath(); c.moveTo(0, -L * 0.6); c.quadraticCurveTo(L * 0.2, -L * 0.2, L * 0.16, L * 0.45); c.lineTo(-L * 0.16, L * 0.45); c.quadraticCurveTo(-L * 0.2, -L * 0.2, 0, -L * 0.6); c.fill();
+          c.fillStyle = '#6b7380'; c.fillRect(-L * 0.08, -L * 0.1, L * 0.16, L * 0.25);
+          c.restore();
+        }
+      };
+    } };
+
+  /* 9. Battle Stations: memorise the alarm sequence and repeat it. One mistake secures the drill. */
+  GAMES.battle = { title: 'General Quarters', time: 0,
+    how: 'Watch the stations light up, then repeat the sequence. It starts at 3 and grows by one each round, up to 8. One wrong station ends the drill.',
+    make: function (api) {
+      var ST = [{ n: 'FIRE', c: '#d9473b', f: 330 }, { n: 'FLOOD', c: '#3a8fd0', f: 392 }, { n: 'MEDICAL', c: '#3fae6a', f: 494 }, { n: 'COMMS', c: '#e4b84c', f: 587 }];
+      var seq = [], len = 3, MAX = 8, phase = 'show', idx = 0, t = 0, lit = -1, litT = 0, input = 0, best = 0, msg = '';
+      function newRound() { while (seq.length < len) seq.push(Math.floor(Math.random() * 4)); phase = 'show'; idx = 0; t = -0.4; input = 0; msg = 'Watch…'; api.hud('Sequence length ' + len); }
+      newRound();
+      function light(i) { lit = i; litT = 0.35; tone(ST[i].f, 0.3, 'triangle', 0.06); }
+      function quad(px, py, W, H) { return (px > W / 2 ? 1 : 0) + (py > H / 2 ? 2 : 0); }
+      function tapStation(i) {
+        if (phase !== 'input') return;
+        light(i);
+        if (seq[input] !== i) { phase = 'over'; api.sfx.bad(); api.end(clamp(best / (MAX - 2), 0, 1), best ? 'Remembered ' + (best + 2) + ' alarms in a row' : 'Missed the first sequence'); return; }
+        input++;
+        if (input >= len) { best = len - 2; if (len >= MAX) { phase = 'over'; api.end(1, 'Perfect: all ' + MAX + ' alarms'); return; } len++; phase = 'pause'; t = 0; msg = 'Correct!'; api.sfx.good(); }
+      }
+      return {
+        update: function (dt) {
+          t += dt; litT = Math.max(0, litT - dt); if (litT === 0) lit = -1;
+          if (phase === 'show' && t >= 0.55) { t = 0; if (idx < seq.length) { light(seq[idx]); idx++; } else { phase = 'input'; msg = 'Your turn'; t = 0; } }
+          if (phase === 'input' && t > 4) { phase = 'over'; api.end(clamp(best / (MAX - 2), 0, 1), 'Ran out of time'); }
+          if (phase === 'pause' && t > 0.8) newRound();
+        },
+        down: function (x, y, W, H) { if (phase === 'input') { t = 0; tapStation(quad(x, y, W, H)); } },
+        key: function (code) { var m = { Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3 }; if (m[code] !== undefined && phase === 'input') { t = 0; tapStation(m[code]); } },
+        draw: function (c, W, H) {
+          c.fillStyle = '#14181f'; c.fillRect(0, 0, W, H);
+          ST.forEach(function (s, i) {
+            var x = (i % 2) * W / 2, y = Math.floor(i / 2) * H / 2, on = lit === i;
+            c.fillStyle = on ? s.c : shade(s.c, -0.65); c.fillRect(x + 6, y + 6, W / 2 - 12, H / 2 - 12);
+            c.fillStyle = on ? '#0a1424' : 'rgba(255,255,255,.7)'; c.font = Math.min(W * 0.07, 30) + 'px ' + DISPLAY_FONT; c.textAlign = 'center'; c.textBaseline = 'middle';
+            c.fillText(s.n, x + W / 4, y + H / 4);
+          });
+          c.fillStyle = 'rgba(10,20,36,.85)'; var bw = Math.min(W * 0.5, 220); c.fillRect(W / 2 - bw / 2, H / 2 - 18, bw, 36);
+          c.fillStyle = '#e9eff7'; c.font = '700 16px ' + BODY_FONT; c.fillText(phase === 'input' ? 'Your turn · ' + input + '/' + len : msg, W / 2, H / 2);
+        }
+      };
+    } };
+
+  /* 10. Academy: inspection. Find the one recruit out of uniform, fast. Wrong picks score zero. */
+  GAMES.academy = { title: 'Uniform Inspection', time: 0,
+    how: 'One recruit in each formation is out of uniform: a missing or crooked cover, wrong belt buckle, missing name tag or untucked shirt. Tap them as fast as you can. Wrong picks score zero.',
+    make: function (api) {
+      var N = 8, round = 0, pts = 0, t = 0, grid = null, odd = -1, flaw = '', state = 'gap', fb = '', fbCol = '#63c98f', wait = 0.4, LIMIT = 6;
+      var FLAWS = ['nocover', 'crooked', 'buckle', 'tag', 'untucked'];
+      function next() {
+        if (round >= N) { api.end(pts / N, Math.round(pts * 10) / 10 + ' / ' + N + ' inspections passed'); return; }
+        round++; var cols = round < 3 ? 4 : round < 6 ? 5 : 6, rows = round < 4 ? 2 : 3;
+        grid = { cols: cols, rows: rows }; odd = Math.floor(Math.random() * cols * rows); flaw = FLAWS[Math.floor(Math.random() * FLAWS.length)];
+        state = 'look'; t = 0; api.hud('Formation ' + round + '/' + N + ' · Score ' + Math.round(pts * 10) / 10);
+      }
+      function cell(i, W, H) { var cw = W / grid.cols, ch = (H * 0.86) / grid.rows; return { x: (i % grid.cols) * cw, y: H * 0.1 + Math.floor(i / grid.cols) * ch, w: cw, h: ch }; }
+      function sailor(c, cx, cy, s, f) {
+        c.fillStyle = '#e9e9e9'; c.fillRect(cx - s * 0.32, cy - s * 0.05, s * 0.64, s * 0.55);
+        if (f === 'untucked') { c.fillRect(cx - s * 0.32, cy + s * 0.5, s * 0.28, s * 0.12); }
+        c.fillStyle = '#1b2433'; c.fillRect(cx - s * 0.3, cy + s * 0.5, s * 0.6, s * 0.5);
+        c.fillStyle = '#111'; c.fillRect(cx - s * 0.32, cy + s * 0.47, s * 0.64, s * 0.06);
+        c.fillStyle = f === 'buckle' ? '#9aa3ad' : '#e4b84c'; c.fillRect(cx - s * 0.06, cy + s * 0.46, s * 0.12, s * 0.08);
+        if (f !== 'tag') { c.fillStyle = '#1b2433'; c.fillRect(cx + s * 0.06, cy + s * 0.1, s * 0.18, s * 0.06); }
+        c.fillStyle = '#f0c9a0'; c.beginPath(); c.arc(cx, cy - s * 0.22, s * 0.18, 0, 7); c.fill();
+        if (f !== 'nocover') {
+          c.save(); c.translate(cx, cy - s * 0.36); if (f === 'crooked') c.rotate(0.55);
+          c.fillStyle = '#ffffff'; c.beginPath(); c.ellipse(0, 0, s * 0.24, s * 0.07, 0, 0, 7); c.fill(); c.fillRect(-s * 0.14, -s * 0.12, s * 0.28, s * 0.1);
+          c.restore();
+        }
+      }
+      return {
+        update: function (dt) { t += dt; if (state === 'gap' && t >= wait) next(); else if (state === 'look' && t > LIMIT) { state = 'gap'; t = 0; wait = 0.8; fb = 'Time! Look closer'; fbCol = '#e0503f'; api.sfx.bad(); } },
+        down: function (x, y, W, H) {
+          if (state !== 'look') return;
+          for (var i = 0; i < grid.cols * grid.rows; i++) {
+            var ce = cell(i, W, H);
+            if (x >= ce.x && x < ce.x + ce.w && y >= ce.y && y < ce.y + ce.h) {
+              if (i === odd) { var p = 0.4 + 0.6 * clamp(1 - t / LIMIT, 0, 1); pts += p; fb = 'Gig line squared away! ' + t.toFixed(1) + 's'; fbCol = '#63c98f'; api.sfx.good(); }
+              else { fb = 'That recruit is squared away'; fbCol = '#e0503f'; api.sfx.bad(); }
+              state = 'gap'; t = 0; wait = 0.7; return;
+            }
+          }
+        },
+        draw: function (c, W, H) {
+          c.fillStyle = '#3d434d'; c.fillRect(0, 0, W, H);
+          c.textAlign = 'center'; c.textBaseline = 'middle';
+          if (grid && state === 'look') {
+            for (var i = 0; i < grid.cols * grid.rows; i++) { var ce = cell(i, W, H), s = Math.min(ce.w, ce.h) * 0.62; sailor(c, ce.x + ce.w / 2, ce.y + ce.h * 0.42, s, i === odd ? flaw : ''); }
+            c.fillStyle = 'rgba(255,255,255,.15)'; c.fillRect(W * 0.1, H * 0.04, W * 0.8, 6);
+            c.fillStyle = '#e4b84c'; c.fillRect(W * 0.1, H * 0.04, W * 0.8 * clamp(1 - t / LIMIT, 0, 1), 6);
+          } else if (fb) { c.fillStyle = fbCol; c.font = '700 ' + Math.min(W * 0.06, 24) + 'px ' + BODY_FONT; c.fillText(fb, W / 2, H / 2); }
+        }
+      };
+    } };
+
+  /* ---------- minigame runner ---------- */
+  var MG = (function () {
+    var root = $('mg'), cv2 = $('mgCanvas'), c2 = cv2.getContext('2d'), stageEl = $('mgStage'), screen = $('mgScreen'), ctrls = $('mgControls');
+    var W2 = 0, H2 = 0, def = null, facId = null, inst = null, phase = 'idle', t = 0, cd = 0, raf = 0, lastT2 = 0, ended = false;
+    function size() {
+      var r = stageEl.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 3);
+      W2 = r.width; H2 = r.height; cv2.width = Math.round(W2 * dpr); cv2.height = Math.round(H2 * dpr); c2.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    var api = {
+      hud: function (h) { $('mgHud').innerHTML = h; },
+      controls: function (list, cls) {
+        ctrls.className = 'mg-controls' + (cls ? ' ' + cls : '');
+        ctrls.innerHTML = list.map(function (b) { return '<button type="button" data-mgc="' + esc(b.id) + '">' + esc(b.label) + '</button>'; }).join('');
+      },
+      end: function (frac, line) { if (!ended) { ended = true; setTimeout(function () { finish(frac, line); }, 350); } },
+      sfx: {
+        good: function () { tone(880, 0.07, 'triangle', 0.05); tone(1320, 0.09, 'triangle', 0.04, 0.05); buzz(false); },
+        bad: function () { sfx.no(); buzz(true); },
+        tick: function () { tone(300, 0.04, 'square', 0.03); },
+        call: function () { tone(220, 0.18, 'sawtooth', 0.05); tone(330, 0.2, 'sawtooth', 0.04, 0.02); }
+      }
+    };
+    function showIntro() {
+      phase = 'intro'; ended = false; inst = null; ctrls.innerHTML = ''; api.hud(''); $('mgTime').textContent = '';
+      var best = S.mgBest[facId], f = C.FAC.filter(function (x) { return x.id === facId; })[0];
+      screen.innerHTML = '<div class="crest">' + f.icon + '</div><h3>' + def.title + '</h3><p>' + def.how + '</p>' +
+        '<p class="m">Up to <b style="color:var(--brass)">' + money(C.mgReward(S, D, 1)) + '</b> for a perfect run. 🥇 90%+ · 🥈 70%+ · 🥉 40%+' +
+        (best !== undefined ? '<br>Your best: ' + Math.round(best * 100) + '% ' + medalIcon(best) : '') + '</p>' +
+        '<button class="btn primary" type="button" id="mgStart">Start drill</button>';
+      $('mgStart').onclick = start;
+      draw();
+    }
+    function start() {
+      screen.innerHTML = ''; ctrls.innerHTML = ''; size();
+      inst = def.make(api); phase = 'count'; cd = 3; t = 0; ended = false;
+    }
+    function finish(frac, line) {
+      if (phase !== 'play') return;
+      phase = 'done'; ctrls.innerHTML = '';
+      frac = clamp(frac || 0, 0, 1);
+      var reward = C.mgReward(S, D, frac), prev = S.mgBest[facId];
+      C.earn(S, reward, reward / D.pay); S.mgPlays = (S.mgPlays || 0) + 1;
+      stat('mgEarned', reward); if (medalFor(frac) !== 'none') stat('mg_' + medalFor(frac), 1);
+      var record = prev === undefined || frac > prev;
+      if (record) S.mgBest[facId] = frac;
+      save(); lastSig.build = '';
+      var m = medalFor(frac);
+      if (m === 'gold') sfx.promo(); else if (m !== 'none') sfx.ach(); else sfx.no();
+      screen.innerHTML = '<div class="crest">' + ({ gold: '🥇', silver: '🥈', bronze: '🥉', none: '📋' })[m] + '</div>' +
+        '<h3>' + Math.round(frac * 100) + '%' + (m === 'none' ? '' : ' · ' + m.charAt(0).toUpperCase() + m.slice(1)) + '</h3>' +
+        '<p>' + esc(line || '') + '</p><p>Government bonus: <b style="color:var(--brass)">+' + money(reward) + '</b></p>' +
+        (record && prev !== undefined ? '<p class="m">New personal best!</p>' : prev !== undefined ? '<p class="m">Best: ' + Math.round(prev * 100) + '%</p>' : '') +
+        '<div class="btnrow" style="justify-content:center"><button class="btn primary" type="button" id="mgAgain">Train again</button><button class="btn" type="button" id="mgDone">Back to base</button></div>';
+      $('mgAgain').onclick = start; $('mgDone').onclick = close;
+    }
+    function draw() {
+      c2.clearRect(0, 0, W2, H2);
+      if (inst && inst.draw) inst.draw(c2, W2, H2);
+      else { c2.fillStyle = '#0a1424'; c2.fillRect(0, 0, W2, H2); }
+      if (phase === 'count') {
+        c2.fillStyle = 'rgba(10,20,36,.55)'; c2.fillRect(0, 0, W2, H2);
+        c2.fillStyle = '#e4b84c'; c2.font = Math.min(W2, H2) * 0.3 + 'px ' + DISPLAY_FONT; c2.textAlign = 'center'; c2.textBaseline = 'middle';
+        c2.fillText(String(Math.ceil(cd)), W2 / 2, H2 / 2);
+      }
+    }
+    function loop() {
+      if (phase === 'idle') return;
+      var now = performance.now();
+      var dt = lastT2 ? Math.min(0.05, (now - lastT2) / 1000) : 0; lastT2 = now;
+      step(dt);
+      raf = requestAnimationFrame(loop);
+    }
+    function step(dt) {
+      if (phase === 'count') { var before = Math.ceil(cd); cd -= dt; if (Math.ceil(cd) !== before && cd > 0) tone(660, 0.08, 'triangle', 0.05); if (cd <= 0) { phase = 'play'; t = 0; tone(990, 0.15, 'triangle', 0.06); } }
+      else if (phase === 'play' && inst) {
+        t += dt;
+        if (inst.update) inst.update(dt, W2, H2);
+        if (def.time) {
+          $('mgTime').textContent = Math.max(0, Math.ceil(def.time - t)) + 's';
+          if (t >= def.time && !ended) { ended = true; finish(inst.score(), inst.summary ? inst.summary() : ''); }
+        }
+      }
+      if (phase !== 'intro' && phase !== 'done') draw();
+    }
+    function local(e) { var r = cv2.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+    cv2.addEventListener('pointerdown', function (e) { e.preventDefault(); if (phase === 'play' && inst && inst.down) { var p = local(e); inst.down(p[0], p[1], W2, H2); } });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) { cv2.addEventListener(ev, function () { if (phase === 'play' && inst && inst.up) inst.up(); }); });
+    ctrls.addEventListener('pointerdown', function (e) { var b = e.target.closest('[data-mgc]'); if (!b) return; e.preventDefault(); b.classList.add('held'); if (phase === 'play' && inst && inst.press) inst.press(b.dataset.mgc, 'down'); });
+    ['pointerup', 'pointercancel', 'pointerout'].forEach(function (ev) {
+      ctrls.addEventListener(ev, function (e) { var b = e.target.closest('[data-mgc]'); if (!b || !b.classList.contains('held')) return; b.classList.remove('held'); if (phase === 'play' && inst && inst.press) inst.press(b.dataset.mgc, 'up'); });
+    });
+    document.addEventListener('keydown', function (e) { if (phase !== 'play' || !inst || !inst.key || e.repeat) return; if (/^(Space|Arrow|Digit)/.test(e.code)) { e.preventDefault(); e.stopPropagation(); inst.key(e.code, 'down'); } }, true);
+    document.addEventListener('keyup', function (e) { if (phase === 'play' && inst && inst.key) inst.key(e.code, 'up'); }, true);
+    window.addEventListener('resize', function () { if (phase !== 'idle') { size(); draw(); } });
+    function open(id) {
+      if (!GAMES[id] || !(S.fac[id] > 0)) return;
+      facId = id; def = GAMES[id];
+      var f = C.FAC.filter(function (x) { return x.id === id; })[0];
+      $('mgFac').textContent = f.name; $('mgTitle').textContent = def.title;
+      root.hidden = false; size();
+      showIntro();
+      lastT2 = 0; cancelAnimationFrame(raf); raf = requestAnimationFrame(loop);
+    }
+    function close() { phase = 'idle'; inst = null; root.hidden = true; cancelAnimationFrame(raf); ctrls.innerHTML = ''; screen.innerHTML = ''; refresh(true); }
+    $('mgClose').addEventListener('click', close);
+    return { open: open, close: close, isOpen: function () { return phase !== 'idle'; }, debug: function () { return { phase: phase, cd: cd, t: t, ended: ended }; },
+      step: function (dt) { cancelAnimationFrame(raf); step(dt); } };
+  })();
+  if (location.protocol === 'file:') window.__bc = { MG: MG }; // local testing hook only
 
   /* --- Upgrades tab --- */
   function visibleUps() { return C.UP.filter(function (u) { return C.upVisible(S, u); }); }
@@ -1204,12 +1922,11 @@ if (typeof module !== 'undefined') module.exports = Core;
       var bonus = Math.round(S.stars * 5);
       h += '<div class="card"><span class="tag">Change of Command</span><h3>Commendations: <span style="color:var(--brass)">' + fmt(S.stars) + '</span></h3>' +
         '<p>Each commendation permanently boosts all training and housing by 5%. Current bonus: <b style="color:var(--text)">+' + fmt(bonus) + '%</b>.</p>' +
-        '<p>Hand over this base to start a new command from scratch. You keep commendations, achievements and rank.</p>' +
+        '<p>Hand over this base to start a new command from scratch. You keep commendations, ribbons and rank. Every new command earns commendations from its own funding too, so you can always hand over again.</p>' +
         '<div class="big">+' + fmt(pend) + ' <span style="font-size:15px;color:var(--muted);font-family:var(--font-body)">commendations if you hand over now</span></div>' +
         (pend < 1 ? '<p id="nextStar"></p>' : '') +
         '<button class="btn ' + (prestigeArmed > Date.now() ? 'danger armed' : 'primary') + '" type="button" id="prestigeBtn"' + (pend < 1 ? ' disabled style="opacity:.5"' : '') + '>' +
         (prestigeArmed > Date.now() ? 'Tap again to confirm hand-over' : 'Hand over command') + '</button></div>';
-      h += '<h2 class="section-title">Service Record</h2><div class="stats" id="stats"></div>';
       var got = Object.keys(S.ach).length;
       h += '<h2 class="section-title">Ribbons ' + got + '/' + C.ACH.length + '</h2><p class="sub">Each ribbon adds +1% to all output.</p><div class="achs">' +
         C.ACH.map(function (a) { return '<div class="ach' + (S.ach[a.id] ? ' got' : '') + '"><div class="n">' + (S.ach[a.id] ? '🎗️ ' : '') + a.name + '</div><div class="d">' + a.desc + '</div></div>'; }).join('') + '</div>';
@@ -1223,15 +1940,92 @@ if (typeof module !== 'undefined') module.exports = Core;
       $('rankNext').textContent = 'Promotion to ' + next2[1] + ' at ' + money(next2[0]) + ' total earned.';
     }
     var ns = $('nextStar');
-    if (ns) { var need = 1e10 * Math.pow((S.stars + 1) / 10, 3); ns.textContent = 'Next commendation at ' + money(need) + ' lifetime earnings (now ' + money(S.allEarned) + ').'; }
-    var st = [
-      ['Graduates (this command)', fmt(S.runGrads)], ['Graduates (career)', fmt(S.allGrads)],
-      ['Earned (this command)', money(S.runEarned)], ['Earned (career)', money(S.allEarned)],
-      ['Times tapped', fmt(S.taps)], ['Mail Calls opened', fmt(S.mailCalls)],
-      ['Time in command', dur(S.runPlayed)], ['Career time', dur(S.played)],
-      ['Training capacity', fmt(D.training, true) + '/s'], ['Housing capacity', fmt(D.capacity, true) + '/s']
+    if (ns) ns.textContent = 'Next commendation after ' + money(C.nextStarIn(S)) + ' more funding.';
+  }
+
+  /* --- Stats tab: tracked counters, with estimates backfilled for saves from before tracking began --- */
+  function stat(k, v) { if (S.stats) S.stats[k] = (S.stats[k] || 0) + v; }
+  function statMax(k, v) { if (S.stats && v > (S.stats[k] || 0)) S.stats[k] = v; }
+  function initStats() {
+    if (S.stats) return;
+    var st = { approx: {}, since: Date.now() }, old = S.played > 60, runs = S.prestiges + 1;
+    var mark = function (k) { if (old) st.approx[k] = 1; };
+    var facNow = 0, spentRun = 0;
+    C.FAC.forEach(function (f) { var n = S.fac[f.id] || 0; facNow += n; spentRun += C.facCost(f, 0, n); });
+    Object.keys(S.ups).forEach(function (id) { var u = C.UP_BY_ID[id]; if (u) spentRun += u.cost; });
+    for (var k = 1; k < S.house; k++) spentRun += 75 * Math.pow(3, k - 1);
+    // Exact for the current command; earlier commands are scaled up from it.
+    st.built = S.prestiges ? Math.round(facNow * (1 + S.prestiges * 0.8)) : facNow;
+    st.upgrades = S.prestiges ? Math.round(Object.keys(S.ups).length * (1 + S.prestiges * 0.8)) : Object.keys(S.ups).length;
+    st.housing = S.prestiges ? Math.round((S.house - 1) * (1 + S.prestiges * 0.8)) : S.house - 1;
+    if (S.prestiges) { mark('built'); mark('upgrades'); mark('housing'); }
+    st.spent = spentRun + Math.max(0, (S.allEarned - S.runEarned) * 0.9); mark('spent');
+    var tapNow = C.tapGrads(S, D) * D.pay;
+    st.tapEarned = Math.min(S.taps * tapNow * 0.2, S.allEarned * 0.3); mark('tapEarned');
+    st.bestTap = S.taps ? tapNow : 0; mark('bestTap');
+    st.peakMps = C.baseThroughput(D) * D.pay; mark('peakMps');
+    st.mailPackages = Math.round(S.mailCalls * 0.42); st.mailLiberty = Math.round(S.mailCalls * 0.38);
+    st.mailHooyah = Math.max(0, S.mailCalls - st.mailPackages - st.mailLiberty);
+    if (S.mailCalls) { mark('mailPackages'); mark('mailLiberty'); mark('mailHooyah'); }
+    st.mailMissed = Math.max(0, Math.round(S.played / 130) - S.mailCalls); mark('mailMissed');
+    st.sessions = Math.max(1, Math.round(S.played / 900)); mark('sessions');
+    st.firstPlayed = Date.now() - S.played * 1000; mark('firstPlayed');
+    st.bestHandover = S.prestiges ? Math.round(S.stars / S.prestiges) : 0; if (S.prestiges) mark('bestHandover');
+    S.stats = st;
+  }
+  var statsRenderedAt = 0;
+  function renderStats(force) {
+    if (!force && Date.now() - statsRenderedAt < 1000) return;
+    statsRenderedAt = Date.now();
+    var st = S.stats || {}, A = st.approx || {};
+    var v = function (k, text) { return (A[k] ? '≈ ' : '') + text; };
+    var sinceDate = new Date(st.since || Date.now()).toLocaleDateString();
+    var newer = function (text) { return text + (S.stats && S.stats.approx && Object.keys(S.stats.approx).length ? ' <span class="since">since ' + sinceDate + '</span>' : ''); };
+    var mails = S.mailCalls + (st.mailMissed || 0);
+    var medals = ['gold', 'silver', 'bronze'].map(function (m) { return st['mg_' + m] || 0; });
+    var sections = [
+      ['Drill', [
+        ['Times tapped', fmt(S.taps)], ['Funding from taps', v('tapEarned', money(st.tapEarned || 0))],
+        ['Biggest single tap', v('bestTap', money(st.bestTap || 0))], ['Fastest tapping', newer((st.maxTps || 0) + ' taps/sec')],
+        ['On-beat bonus taps', fmt(S.beatTaps || 0)], ['Best on-beat streak', newer(fmt(st.bestBeatStreak || 0))]
+      ]],
+      ['Base', [
+        ['Graduates (career)', fmt(S.allGrads)], ['Graduates (this command)', fmt(S.runGrads)],
+        ['Facilities built', v('built', fmt(st.built || 0))], ['Housing expansions', v('housing', fmt(st.housing || 0))],
+        ['Upgrades installed', v('upgrades', fmt(st.upgrades || 0))], ['Staff hires & promotions', fmt(st.hires || 0)],
+        ['Peak funding rate', v('peakMps', money(st.peakMps || 0) + '/s')], ['Total spent', v('spent', money(st.spent || 0))]
+      ]],
+      ['Funding', [
+        ['Earned (career)', money(S.allEarned)], ['Earned (this command)', money(S.runEarned)],
+        ['Earned while away', newer(money(st.awayEarned || 0))], ['Longest time away', newer(dur(st.longestAway || 0))],
+        ['Current rate', money(C.throughput(S, D) * D.pay) + '/s'], ['Pay per graduate', money(D.pay)]
+      ]],
+      ['Mail Call', [
+        ['Opened', fmt(S.mailCalls)], ['Flew away', v('mailMissed', fmt(st.mailMissed || 0))],
+        ['Catch rate', (A.mailMissed ? '≈ ' : '') + (mails ? Math.round(S.mailCalls / mails * 100) : 0) + '%'], ['Care packages', v('mailPackages', fmt(st.mailPackages || 0))],
+        ['Liberty Weekends', v('mailLiberty', fmt(st.mailLiberty || 0))], ['Hooyahs', v('mailHooyah', fmt(st.mailHooyah || 0))]
+      ]],
+      ['Training', [
+        ['Minigames played', fmt(S.mgPlays || 0)], ['Minigame funding', money(st.mgEarned || 0)],
+        ['🥇 Gold medals', fmt(medals[0])], ['🥈 Silver / 🥉 Bronze', fmt(medals[1]) + ' / ' + fmt(medals[2])]
+      ]],
+      ['Career', [
+        ['Time in command', dur(S.runPlayed)], ['Career time', dur(S.played)],
+        ['Sessions', v('sessions', fmt(st.sessions || 0))], ['Enlisted', v('firstPlayed', new Date(st.firstPlayed || Date.now()).toLocaleDateString())],
+        ['Hand-overs', fmt(S.prestiges)], ['Most commendations at once', v('bestHandover', fmt(st.bestHandover || 0))],
+        ['Commendations', fmt(S.stars)], ['Music listened', newer(dur(st.musicSec || 0))]
+      ]]
     ];
-    $('stats').innerHTML = st.map(function (s) { return '<div class="stat"><div class="k">' + s[0] + '</div><div class="v">' + s[1] + '</div></div>'; }).join('');
+    var bests = C.FAC.filter(function (f) { return S.mgBest[f.id] !== undefined; }).map(function (f) {
+      return '<div class="stat"><div class="k">' + esc(GAMES[f.id].title) + '</div><div class="v">' + Math.round(S.mgBest[f.id] * 100) + '% ' + medalIcon(S.mgBest[f.id]) + '</div></div>';
+    }).join('');
+    var h = '<h2 class="section-title">Service Record</h2>';
+    sections.forEach(function (sec) {
+      h += '<h3 class="stat-head">' + sec[0] + '</h3><div class="stats">' + sec[1].map(function (r) { return '<div class="stat"><div class="k">' + r[0] + '</div><div class="v">' + r[1] + '</div></div>'; }).join('') + '</div>';
+      if (sec[0] === 'Training' && bests) h += '<div class="stats">' + bests + '</div>';
+    });
+    if (Object.keys(A).length) h += '<p class="sub">≈ marks estimates rebuilt from your save, since these weren\'t tracked before ' + sinceDate + '. They become exact as you keep playing.</p>';
+    $('pane-stats').innerHTML = h;
   }
 
   /* --- Global leaderboard (Supabase REST; see supabase/schema.sql) --- */
@@ -1340,18 +2134,27 @@ if (typeof module !== 'undefined') module.exports = Core;
   /* --- panel events (delegated) --- */
   $('panel').addEventListener('click', function (e) {
     var t = e.target.closest('button'); if (!t) return;
+    clickMoney = S.money;
     if (t.dataset.bm) { S.buyMode = t.dataset.bm === 'max' ? 'max' : +t.dataset.bm; renderBuild(true); return; }
     if (t.dataset.buy) {
       var f = C.FAC.filter(function (x) { return x.id === t.dataset.buy; })[0];
       var n = buyQty(f);
-      if (C.buyFac(S, f, n)) { plots[C.FAC.indexOf(f)].pulse = 1; afterBuy(); } else sfx.no();
+      if (C.buyFac(S, f, n, D.costMult)) { stat('built', n); plots[C.FAC.indexOf(f)].pulse = 1; afterBuy(); } else sfx.no();
       return;
     }
-    if (t.dataset.house) { if (C.buyHouse(S)) { afterBuy(); toast('🛏️ Housing expanded to <b>Level ' + S.house + '</b> (' + C.houseName(S.house) + ')'); } else sfx.no(); return; }
-    if (t.dataset.up) { if (C.buyUp(S, C.UP_BY_ID[t.dataset.up])) afterBuy(); else sfx.no(); return; }
+    if (t.dataset.mg) { MG.open(t.dataset.mg); return; }
+    if (t.dataset.staff) {
+      var stf = C.STAFF.filter(function (x) { return x.id === t.dataset.staff; })[0];
+      var wasHired = (S.staff[stf.id] || 0) > 0;
+      if (C.buyStaff(S, stf)) { stat('hires', 1); afterBuy(); toast(stf.icon + ' ' + (wasHired ? 'Promoted' : 'Hired') + ' <b>' + stf.name + '</b> to level ' + S.staff[stf.id]); } else sfx.no();
+      return;
+    }
+    if (t.dataset.house) { if (C.buyHouse(S)) { stat('housing', 1); afterBuy(); toast('🛏️ Housing expanded to <b>Level ' + S.house + '</b> (' + C.houseName(S.house) + ')'); } else sfx.no(); return; }
+    if (t.dataset.up) { if (C.buyUp(S, C.UP_BY_ID[t.dataset.up])) { stat('upgrades', 1); afterBuy(); } else sfx.no(); return; }
     if (t.id === 'buyAllUps') {
       var bought = 0;
       visibleUps().forEach(function (u) { if (C.buyUp(S, u)) bought++; });
+      stat('upgrades', bought);
       if (bought) { afterBuy(); toast('Installed <b>' + bought + '</b> upgrade' + (bought > 1 ? 's' : '')); }
       return;
     }
@@ -1359,7 +2162,7 @@ if (typeof module !== 'undefined') module.exports = Core;
       if (C.starsPending(S) < 1) return;
       if (prestigeArmed > Date.now()) {
         prestigeArmed = 0;
-        var gain = C.prestige(S);
+        var gain = C.prestige(S); statMax('bestHandover', gain);
         D = C.derive(S); divisions = []; syncDivisions(); lastSig.build = ''; lastSig.upgrades = '';
         sfx.promo(); buzz(true); save();
         modal('🎖️', 'Change of Command', '<p>You handed over the base with honors and received <b style="color:var(--brass)">' + fmt(gain) + '</b> commendations.</p><p class="m">All output is now permanently +' + fmt(S.stars * 5) + '%. Time to build a new base.</p>', 'Take command', function () { setTab('build'); });
@@ -1390,7 +2193,7 @@ if (typeof module !== 'undefined') module.exports = Core;
       try {
         var obj = JSON.parse(decodeURIComponent(escape(atob($('importBox').value.trim()))));
         if (typeof obj.money !== 'number') throw new Error('bad');
-        S = hydrate(obj); D = C.derive(S); divisions = []; syncDivisions(); save();
+        S = hydrate(obj); D = C.derive(S); initStats(); divisions = []; syncDivisions(); save();
         toast('Backup loaded'); lastSig = { build: '', upgrades: '', command: '' }; renderMore(); refresh(true);
       } catch (err) { toast('That code didn\'t work. Copy the whole backup code and try again.'); }
       return;
@@ -1398,7 +2201,7 @@ if (typeof module !== 'undefined') module.exports = Core;
     if (t.id === 'resetBtn') {
       if (resetArmed > Date.now()) {
         resetArmed = 0;
-        S = C.newState(); S.seenIntro = true; D = C.derive(S); divisions = []; syncDivisions(); save();
+        S = C.newState(); S.seenIntro = true; S.seenVersion = GAME_VERSION; D = C.derive(S); initStats(); divisions = []; syncDivisions(); save();
         lastSig = { build: '', upgrades: '', command: '' }; toast('Progress erased. Welcome, Ensign.'); setTab('build'); refresh(true);
       } else {
         resetArmed = Date.now() + 4000; t.classList.add('armed'); t.textContent = 'Tap again to erase everything';
@@ -1457,6 +2260,7 @@ if (typeof module !== 'undefined') module.exports = Core;
   $('updateBanner').addEventListener('click', function () { save(); location.reload(); });
 
   function afterBuy() {
+    stat('spent', Math.max(0, clickMoney - S.money)); clickMoney = S.money;
     D = C.derive(S); syncDivisions(); sfx.buy(); buzz(false);
     refresh(true);
   }
@@ -1467,6 +2271,7 @@ if (typeof module !== 'undefined') module.exports = Core;
     $('money').textContent = money(S.money);
     var tp = C.throughput(S, D);
     $('mps').textContent = money(tp * D.pay);
+    statMax('peakMps', tp * D.pay);
     $('gps').textContent = fmt(tp, true);
     $('ppg').textContent = money(D.pay);
     var full = D.training > D.capacity * 1.0001;
@@ -1487,14 +2292,17 @@ if (typeof module !== 'undefined') module.exports = Core;
     }
     // boosts strip
     var bh = S.boosts.filter(function (b) { return b.until > S.played; }).map(function (b) { return '<span class="boost">' + b.label + ' · ' + Math.ceil(b.until - S.played) + 's</span>'; }).join('');
-    if (performance.now() / 1000 < groove.activeUntil) bh = '<span class="boost groove">♪ In step: taps +50%</span>' + bh;
+    if (performance.now() / 1000 < groove.activeUntil) bh = '<span class="boost groove">♪ In step: taps +' + Math.round(D.beatBonus * 100) + '%</span>' + bh;
     if ($('boosts').innerHTML !== bh) $('boosts').innerHTML = bh;
     // tab dots
     $('upDot').hidden = !visibleUps().some(function (u) { return S.money >= u.cost; });
+    $('staffDot').hidden = !C.STAFF.some(function (st) { var lv = S.staff[st.id] || 0; return C.staffVisible(S, st) && lv < C.MAX_STAFF && S.money >= C.staffCost(st, lv); });
     $('cmdDot').hidden = C.starsPending(S) < 1;
   }
   function renderPane(force) {
     if (currentTab === 'build') renderBuild(force);
+    else if (currentTab === 'staff') renderStaff(force);
+    else if (currentTab === 'stats') renderStats(force);
     else if (currentTab === 'upgrades') renderUpgrades(force);
     else if (currentTab === 'command') renderCommand(force);
     else if (force) renderMore();
@@ -1511,6 +2319,7 @@ if (typeof module !== 'undefined') module.exports = Core;
     if (!mail && S.played >= S.nextMail && C.FAC.some(function (f) { return S.fac[f.id]; })) { spawnMail(); S.nextMail = S.played + (70 + Math.random() * 90) * D.mailFreq + 14; }
     drawMap(dt);
     uiAcc += dt; achAcc += dt; saveAcc += dt;
+    if (Music.isPlaying()) stat('musicSec', dt);
     if (uiAcc > 0.12) { uiAcc = 0; renderHeader(); if (currentTab !== 'more') renderPane(false); }
     if (achAcc > 1) {
       achAcc = 0;
@@ -1544,6 +2353,7 @@ if (typeof module !== 'undefined') module.exports = Core;
     layout(); syncDivisions();
     if (S.taps >= 8) { hintGone = true; $('hint').style.opacity = '0'; }
     lastRank = C.rankIndex(S.allEarned);
+    initStats(); stat('sessions', 1);
     refresh(true);
     if (!S.seenIntro) {
       modal('⚓', 'Congratulations, Sailor!',

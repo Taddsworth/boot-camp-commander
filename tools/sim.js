@@ -11,7 +11,7 @@ const s = C.newState(); let d = C.derive(s);
 const milestones = [1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 1e12]; let mi = 0, capped = 0;
 const mps = dd => C.baseThroughput(dd) * dd.pay;
 const value = (st, dd) => mps(dd) + C.tapGrads(st, dd) * dd.pay * TAPS;
-const clone = st => ({ ...st, fac: { ...st.fac }, ups: { ...st.ups }, ach: { ...st.ach }, boosts: [] });
+const clone = st => ({ ...st, fac: { ...st.fac }, ups: { ...st.ups }, ach: { ...st.ach }, staff: { ...(st.staff || {}) }, boosts: [] });
 
 for (let t = 0; t < HOURS * 3600; t++) {
   for (let k = 0; k < TAPS; k++) C.tap(s, d);
@@ -19,7 +19,11 @@ for (let t = 0; t < HOURS * 3600; t++) {
   if (d.training > d.capacity) capped++;
   for (let guard = 0; guard < 40; guard++) {
     const base = value(s, d); let best = null;
-    const opts = C.FAC.map(f => ({ cost: C.facCost(f, s.fac[f.id] || 0, 1), apply: st => { st.fac[f.id] = (st.fac[f.id] || 0) + 1; } }));
+    const opts = C.FAC.map(f => ({ cost: C.facCost(f, s.fac[f.id] || 0, 1, d.costMult), apply: st => { st.fac[f.id] = (st.fac[f.id] || 0) + 1; } }));
+    if (C.STAFF) C.STAFF.forEach(st => {
+      const lv = (s.staff || {})[st.id] || 0;
+      if (lv < C.MAX_STAFF && C.staffVisible(s, st)) opts.push({ cost: C.staffCost(st, lv), apply: x => { x.staff = { ...(x.staff || {}) }; x.staff[st.id] = lv + 1; } });
+    });
     opts.push({ cost: C.houseCost(s), apply: st => { st.house++; } });
     C.UP.forEach(u => { if (C.upVisible(s, u)) opts.push({ cost: u.cost, apply: st => { st.ups[u.id] = 1; } }); });
     for (const o of opts) {
