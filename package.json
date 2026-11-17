@@ -1,6 +1,6 @@
 {
   "name": "boot-camp-commander",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "private": true,
   "description": "Idle clicker game: run a Navy-style recruit training base.",
   "scripts": {

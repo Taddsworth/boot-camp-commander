@@ -115,7 +115,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .toggle::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--muted); transition: left .15s, background .15s; }
 .toggle[aria-checked="true"] { background: #3a2f12; border-color: var(--brass); }
 .toggle[aria-checked="true"]::after { left: 25px; background: var(--brass); }
-input[type="text"], textarea { width: 100%; background: var(--ink); color: var(--text); border: 1px solid var(--rail); border-radius: 8px; padding: 9px 10px; font: inherit; -webkit-user-select: text; user-select: text; }
+input[type="text"], input[type="password"], textarea { width: 100%; background: var(--ink); color: var(--text); border: 1px solid var(--rail); border-radius: 8px; padding: 9px 10px; font: inherit; -webkit-user-select: text; user-select: text; }
 textarea { min-height: 80px; font-size: 12px; font-family: ui-monospace, Menlo, Consolas, monospace; resize: vertical; }
 .btn { padding: 10px 14px; border-radius: 10px; border: 1px solid var(--rail); background: var(--deck); font-weight: 700; }
 .btn.danger { border-color: var(--signal); color: var(--signal); background: transparent; }
@@ -276,6 +276,8 @@ input[type="range"] { width: 100%; accent-color: var(--brass); }
 /* ===== Pure game logic: no DOM. Shared by the app and the balance simulator. ===== */
 var Core = (function () {
   var GROWTH = 1.15;
+  // Esprit de corps: every unit of a facility makes that whole line this much better, so income compounds with growth.
+  var ESPRIT = 1.05;
   var BASE_PAY = 2;
 
   var FAC = [
@@ -329,11 +331,11 @@ var Core = (function () {
   [
     ['Command Voice', 100, 'tap', 2, 'Taps train ×2 recruits', { taps: 15 }],
     ['Smokey Bear Hat', 1500, 'tap', 2, 'Taps train ×2 recruits', { taps: 75 }],
-    ['Recruit Division Commander', 2e4, 'tapPct', 0.01, 'Each tap also trains 1% of your per-second rate', { taps: 150 }],
-    ['Brass Whistle', 2e6, 'tapPct', 0.01, 'Each tap also trains +1% of your per-second rate', { taps: 300 }],
-    ['Megaphone', 2e8, 'tapPct', 0.01, 'Each tap also trains +1% of your per-second rate', { taps: 600 }],
-    ['Thousand-Yard Stare', 2e10, 'tapPct', 0.01, 'Each tap also trains +1% of your per-second rate', { taps: 1000 }],
-    ['Voice of the Fleet', 2e12, 'tapPct', 0.02, 'Each tap also trains +2% of your per-second rate', { taps: 2000 }]
+    ['Recruit Division Commander', 2e4, 'tapPct', 0.02, 'Each tap also trains 2% of your per-second rate', { taps: 150 }],
+    ['Brass Whistle', 2e6, 'tapPct', 0.02, 'Each tap also trains +2% of your per-second rate', { taps: 300 }],
+    ['Megaphone', 2e8, 'tapPct', 0.02, 'Each tap also trains +2% of your per-second rate', { taps: 600 }],
+    ['Thousand-Yard Stare', 2e10, 'tapPct', 0.02, 'Each tap also trains +2% of your per-second rate', { taps: 1000 }],
+    ['Voice of the Fleet', 2e12, 'tapPct', 0.04, 'Each tap also trains +4% of your per-second rate', { taps: 2000 }]
   ].forEach(function (t, i) {
     UP.push({ id: 'tap_' + i, kind: t[2], mult: t[3], icon: '📣', name: t[0], cost: t[1], desc: t[4], req: t[5] });
   });
@@ -356,7 +358,7 @@ var Core = (function () {
   /* Staff: hire once, promote up to MAX_STAFF levels. Cost = base × 7^level. Reset on Change of Command. */
   var MAX_STAFF = 10, STAFF_GROWTH = 7;
   var STAFF = [
-    { id: 'di',      icon: '🧢', name: 'Drill Instructor',       base: 2e3,  per: '+25% tap power',                 desc: 'A voice that carries across the whole grinder.' },
+    { id: 'di',      icon: '🧢', name: 'Drill Instructor',       base: 2e3,  per: '+25% tap power, taps +0.5% of rate',                 desc: 'A voice that carries across the whole grinder.' },
     { id: 'yeoman',  icon: '📋', name: 'Yeoman',                 base: 2.5e4,  per: '+10% pay per graduate',          desc: 'Files the paperwork that gets the government to pay up.' },
     { id: 'cook',    icon: '🍳', name: 'Culinary Specialist',    base: 1e5,  per: '+15% housing capacity',          desc: 'Well-fed recruits sleep in tighter racks without complaint.' },
     { id: 'postal',  icon: '📮', name: 'Postal Clerk',           base: 5e5,  per: 'Mail Call 7% more often, care packages +20%', desc: 'Sorts letters from home at record speed.' },
@@ -420,7 +422,7 @@ var Core = (function () {
       fac: {}, house: 1, ups: {}, stars: 0, taps: 0, mailCalls: 0, ach: {}, prestiges: 0,
       boosts: [], played: 0, runPlayed: 0, last: Date.now(), nextMail: 40,
       settings: { sound: true, haptics: true, music: true, musicVol: 0.6 }, baseName: 'RTC Lakeside', buyMode: 1, seenIntro: false, seenVersion: '',
-      lbId: '', lbSecret: '', lbName: '', beatTaps: 0, seenRhythmTip: false, staff: {}, mgBest: {}, mgPlays: 0,
+      lbId: '', lbSecret: '', lbName: '', beatTaps: 0, seenRhythmTip: false, staff: {}, staffMode: 1, mgBest: {}, mgPlays: 0,
       stats: null // filled (and backfilled for older saves) by initStats()
     };
   }
@@ -439,7 +441,7 @@ var Core = (function () {
     var L = function (id) { return Math.min(MAX_STAFF, (s.staff || {})[id] || 0); };
     var d = {
       global: (1 + 0.05 * s.stars * (1 + 0.1 * L('pao'))) * (1 + 0.01 * Object.keys(s.ach).length) * (1 + 0.1 * L('chief')),
-      facMult: {}, facRate: {}, pay: BASE_PAY * (1 + 0.1 * L('yeoman')), tapMult: 1 + 0.25 * L('di'), tapPct: 0,
+      facMult: {}, facRate: {}, pay: BASE_PAY * (1 + 0.1 * L('yeoman')), tapMult: 1 + 0.25 * L('di'), tapPct: 0.005 * L('di'),
       houseMult: 1 + 0.15 * L('cook'), mailFreq: Math.pow(0.93, L('postal')), mailLen: 1, careMult: 1 + 0.2 * L('postal'),
       costMult: 1 - 0.03 * L('seabee'), beatBonus: 0.5 + 0.1 * L('band'), mgMult: 1 + 0.2 * L('to'),
       offlineCap: (12 + 2 * L('corpsman')) * 3600
@@ -457,7 +459,7 @@ var Core = (function () {
     }
     var training = 0;
     FAC.forEach(function (f) {
-      d.facRate[f.id] = f.rate * d.facMult[f.id] * d.global;
+      d.facRate[f.id] = f.rate * d.facMult[f.id] * d.global * Math.pow(ESPRIT, s.fac[f.id] || 0);
       training += d.facRate[f.id] * (s.fac[f.id] || 0);
     });
     d.training = training;
@@ -467,7 +469,8 @@ var Core = (function () {
   function boostMult(s, kind) { var m = 1; s.boosts.forEach(function (b) { if (b.kind === kind && b.until > s.played) m *= b.mult; }); return m; }
   function baseThroughput(d) { return Math.min(d.training, d.capacity); }
   function throughput(s, d) { return baseThroughput(d) * boostMult(s, 'prod'); }
-  function tapGrads(s, d) { return (1 + d.training * d.tapPct) * d.tapMult * d.global * boostMult(s, 'tap'); }
+  // Flat part scales with tap power; the % part is a share of the housing-capped passive rate (global is already in it).
+  function tapGrads(s, d) { return (d.tapMult * d.global + baseThroughput(d) * d.tapPct) * boostMult(s, 'tap'); }
 
   function earn(s, money, grads) {
     s.money += money; s.runEarned += money; s.allEarned += money;
@@ -495,6 +498,28 @@ var Core = (function () {
     var lv = (s.staff || {})[st.id] || 0, c = staffCost(st, lv);
     if (lv >= MAX_STAFF || s.money < c) return false;
     s.money -= c; s.staff = s.staff || {}; s.staff[st.id] = lv + 1; return true;
+  }
+  // How many promotions of one staff member the money covers (and what they cost together).
+  function staffMaxLevels(s, st, money) {
+    var lv = (s.staff || {})[st.id] || 0, n = 0, cost = 0;
+    while (lv + n < MAX_STAFF && cost + staffCost(st, lv + n) <= money) { cost += staffCost(st, lv + n); n++; }
+    return { n: n, cost: cost };
+  }
+  function buyStaffMax(s, st) { var n = 0; while (buyStaff(s, st)) n++; return n; }
+  // Hire/promote across every open billet, always taking the cheapest next level first. Returns promotions bought.
+  function buyAllStaff(s) {
+    var n = 0;
+    for (;;) {
+      var best = null;
+      STAFF.forEach(function (st) {
+        var lv = (s.staff || {})[st.id] || 0;
+        if (lv >= MAX_STAFF || !staffVisible(s, st)) return;
+        var c = staffCost(st, lv);
+        if (c <= s.money && (!best || c < best.c)) best = { st: st, c: c };
+      });
+      if (!best || !buyStaff(s, best.st)) return n;
+      n++;
+    }
   }
   function staffVisible(s, st) { return ((s.staff || {})[st.id] || 0) > 0 || s.runEarned >= st.base * 0.4; }
   // Minigame payout for a 0..1 score: up to MG_SECONDS of base income (with an early-game floor from tap value).
@@ -535,7 +560,7 @@ var Core = (function () {
 
   return {
     FAC: FAC, UP: UP, UP_BY_ID: UP_BY_ID, RANKS: RANKS, ACH: ACH, GROWTH: GROWTH,
-    STAFF: STAFF, MAX_STAFF: MAX_STAFF, staffCost: staffCost, buyStaff: buyStaff, staffVisible: staffVisible, mgReward: mgReward,
+    ESPRIT: ESPRIT, STAFF: STAFF, MAX_STAFF: MAX_STAFF, staffCost: staffCost, buyStaff: buyStaff, staffVisible: staffVisible, staffMaxLevels: staffMaxLevels, buyStaffMax: buyStaffMax, buyAllStaff: buyAllStaff, mgReward: mgReward,
     newState: newState, facCost: facCost, maxAffordable: maxAffordable, houseCost: houseCost, houseName: houseName,
     derive: derive, boostMult: boostMult, baseThroughput: baseThroughput, throughput: throughput, tapGrads: tapGrads,
     tick: tick, tap: tap, earn: earn, upVisible: upVisible, buyFac: buyFac, buyHouse: buyHouse, buyUp: buyUp,
@@ -599,8 +624,8 @@ if (typeof module !== 'undefined') module.exports = Core;
   }
 
   /* ---------- version + changelog (shown once after an update) ---------- */
-  var GAME_VERSION = '1.4.1';
-  var CHANGELOG = 'New: hire base Staff, play a training minigame at every facility (tap Train), and see your Service Record in the new Stats tab. Hand-overs now always earn commendations.';
+  var GAME_VERSION = '1.5.0';
+  var CHANGELOG = 'New: cloud save sync (More tab), staff MAX and Hire-all buttons, and Esprit de corps: every facility you own makes its whole line 5% better, so income compounds. Tapping and idle earnings are rebalanced so away time pays fairly.';
 
   /* ---------- shared audio context ---------- */
   var actx = null;
@@ -1216,14 +1241,16 @@ if (typeof module !== 'undefined') module.exports = Core;
       pane.querySelector('[data-p="' + f.id + '"]').textContent = money(cost);
       btn.disabled = S.money < cost;
       pane.querySelector('[data-cnt="' + f.id + '"]').textContent = owned;
-      pane.querySelector('[data-rate="' + f.id + '"]').textContent = '+' + fmt(D.facRate[f.id], true) + '/sec each' + (owned ? ' · ' + fmt(D.facRate[f.id] * owned, true) + '/sec total' : '');
+      var nextGain = D.facRate[f.id] * ((owned + 1) * C.ESPRIT - owned);
+      pane.querySelector('[data-rate="' + f.id + '"]').textContent = '+' + fmt(nextGain, true) + '/sec for the next one' +
+        (owned ? ' · ' + fmt(D.facRate[f.id] * owned, true) + '/sec total · Esprit ×' + fmt(Math.pow(C.ESPRIT, owned), true) : '');
     });
   }
 
   /* --- Staff tab --- */
   function staffEffect(id, lv) {
     switch (id) {
-      case 'di': return '+' + 25 * lv + '% tap power';
+      case 'di': return '+' + 25 * lv + '% tap power, taps +' + (0.5 * lv).toFixed(1) + '% of rate';
       case 'yeoman': return '+' + 10 * lv + '% pay per graduate';
       case 'cook': return '+' + 15 * lv + '% housing capacity';
       case 'postal': return Math.round((1 - Math.pow(0.93, lv)) * 100) + '% more Mail Calls, +' + 20 * lv + '% packages';
@@ -1240,10 +1267,13 @@ if (typeof module !== 'undefined') module.exports = Core;
     var pane = $('pane-staff');
     var vis = C.STAFF.filter(function (st) { return C.staffVisible(S, st); });
     var locked = C.STAFF.filter(function (st) { return !C.staffVisible(S, st); })[0];
-    var sig = vis.map(function (st) { return st.id + (S.staff[st.id] || 0); }).join(',') + '|' + (locked ? locked.id : '');
+    var sig = vis.map(function (st) { return st.id + (S.staff[st.id] || 0); }).join(',') + '|' + (locked ? locked.id : '') + '|' + S.staffMode;
     if (force || sig !== lastSig.staff) {
       lastSig.staff = sig;
-      var h = '<h2 class="section-title">Base Staff</h2><p class="sub">Hire specialists for permanent bonuses this command. Promote each up to level ' + C.MAX_STAFF + '. Staff move on when you hand over command.</p>';
+      var h = '<h2 class="section-title">Base Staff</h2><p class="sub">Hire specialists for permanent bonuses this command. Promote each up to level ' + C.MAX_STAFF + '. Staff move on when you hand over command.</p>' +
+        '<div class="buymode" role="group" aria-label="Promote quantity"><span>Buy</span>' +
+        [1, 'max'].map(function (m) { return '<button type="button" data-sm="' + m + '" aria-pressed="' + (S.staffMode === m) + '">' + (m === 'max' ? 'MAX' : '×1') + '</button>'; }).join('') +
+        '</div><button class="buy wide" type="button" id="buyAllStaff"><span class="p">Hire and promote all affordable</span></button>';
       vis.forEach(function (st) {
         var lv = S.staff[st.id] || 0;
         h += '<div class="row"><div class="ficon">' + st.icon + (lv ? '<span class="cnt">' + lv + '</span>' : '') + '</div><div class="finfo">' +
@@ -1251,16 +1281,25 @@ if (typeof module !== 'undefined') module.exports = Core;
           '<div class="fdesc">' + st.desc + '</div>' +
           '<div class="frate">' + (lv ? 'Now: ' + staffEffect(st.id, lv) + (lv < C.MAX_STAFF ? ' · Next: ' + staffEffect(st.id, lv + 1) : '') : 'Hire for: ' + staffEffect(st.id, 1)) + '</div></div>' +
           (lv < C.MAX_STAFF
-            ? '<button class="buy" type="button" data-staff="' + st.id + '"><span class="q">' + (lv ? 'Promote' : 'Hire') + '</span><span class="p">' + money(C.staffCost(st, lv)) + '</span></button>'
+            ? '<button class="buy" type="button" data-staff="' + st.id + '"><span class="q" data-sq="' + st.id + '">' + (lv ? 'Promote' : 'Hire') + '</span><span class="p" data-sp="' + st.id + '">' + money(C.staffCost(st, lv)) + '</span></button>'
             : '<button class="buy" type="button" disabled><span class="q">Max</span><span class="p">LV ' + lv + '</span></button>') + '</div>';
       });
       if (locked) h += '<div class="row classified"><div class="ficon">🔒</div><div class="finfo"><div class="fname">' + locked.name + '</div><div class="fdesc">Earn ' + money(locked.base * 0.4) + ' this command to open this billet.</div></div><span></span></div>';
       pane.innerHTML = h;
     }
+    var anyAff = false;
     pane.querySelectorAll('[data-staff]').forEach(function (b) {
       var st = C.STAFF.filter(function (x) { return x.id === b.dataset.staff; })[0];
-      b.disabled = S.money < C.staffCost(st, S.staff[st.id] || 0);
+      var lv = S.staff[st.id] || 0, next = C.staffCost(st, lv), aff = S.money >= next;
+      anyAff = anyAff || aff;
+      b.disabled = !aff;
+      var q = lv ? 'Promote' : 'Hire', p = next;
+      if (S.staffMode === 'max') { var mx = C.staffMaxLevels(S, st, S.money); if (mx.n > 1) { q += ' ×' + mx.n; p = mx.cost; } }
+      var qe = pane.querySelector('[data-sq="' + st.id + '"]'), pe = pane.querySelector('[data-sp="' + st.id + '"]');
+      if (qe.textContent !== q) qe.textContent = q;
+      pe.textContent = money(p);
     });
+    var ba = $('buyAllStaff'); if (ba) ba.disabled = !anyAff;
   }
 
   /* ================= FACILITY MINIGAMES ================= */
@@ -2118,6 +2157,135 @@ if (typeof module !== 'undefined') module.exports = Core;
     box.hidden = false; box.innerHTML = h;
   }
 
+  /* --- Cloud save sync (Supabase RPCs; see supabase/sync.sql) ---
+     The device keeps a session token (never the password) and the cloud revision its save matches.
+     Uploads only replace the cloud copy when this device was up to date; otherwise the save with the most
+     career earnings wins, so playing on two devices never throws away the further-along base. */
+  var SYNC_KEY = 'bootcamp-commander-sync';
+  var Sync = { user: '', token: '', rev: -1, at: 0, busy: false, error: '', pending: null, force: false };
+  (function () {
+    try { var o = JSON.parse(localStorage.getItem(SYNC_KEY) || 'null'); if (o && o.token) { Sync.user = o.user; Sync.token = o.token; Sync.rev = o.rev; Sync.at = o.at || 0; } } catch (e) {}
+  })();
+  function saveSync() {
+    try {
+      if (Sync.token) localStorage.setItem(SYNC_KEY, JSON.stringify({ user: Sync.user, token: Sync.token, rev: Sync.rev, at: Sync.at }));
+      else localStorage.removeItem(SYNC_KEY);
+    } catch (e) {}
+  }
+  function rpc(name, body, keepalive) {
+    return fetch(LB.url + '/rest/v1/rpc/' + name, {
+      method: 'POST', keepalive: !!keepalive, cache: 'no-store',
+      headers: lbHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(body)
+    }).then(function (r) {
+      return r.text().then(function (t) {
+        var j = null; try { j = t ? JSON.parse(t) : null; } catch (e) {}
+        if (!r.ok) { var err = new Error((j && j.message) || 'Server error ' + r.status); err.server = true; throw err; }
+        return j;
+      });
+    });
+  }
+  function syncSignedOut(msg) {
+    Sync.token = ''; Sync.user = ''; Sync.rev = -1; Sync.pending = null; saveSync();
+    if (msg) toast(msg, 5000);
+    renderSync();
+  }
+  function syncFail(err) {
+    if (err && err.server && /not signed in/i.test(err.message)) { syncSignedOut('☁️ Cloud save signed out. Sign in again under More.'); return; }
+    Sync.error = err && err.server ? err.message : 'Offline. Will sync when you\'re back online.';
+    renderSync();
+  }
+  function cloudEarned(data) { return data && typeof data.allEarned === 'number' ? data.allEarned : 0; }
+  // Replaces this device's save with the cloud copy, keeping device settings, then credits time since it was saved.
+  function adoptCloud(data, rev, label) {
+    var keep = S.settings;
+    var away = (Date.now() - (data.last || Date.now())) / 1000;
+    S = hydrate(data); S.settings = keep; D = C.derive(S); initStats(); divisions = []; syncDivisions();
+    lastRank = C.rankIndex(S.allEarned);
+    $('baseName').textContent = S.baseName;
+    Sync.rev = rev; Sync.at = Date.now(); Sync.error = ''; saveSync(); save();
+    lastSig = { build: '', upgrades: '', command: '', staff: '' }; refresh(true); if (currentTab === 'more') renderMore();
+    if (away >= 60) applyAway(away, label || 'Synced from your other device');
+    else toast('☁️ Loaded your latest progress from the cloud');
+  }
+  // Settles a newer cloud save against this one: further along (career earnings) wins.
+  function resolveCloud(data, rev, label) {
+    if (data && cloudEarned(data) > S.allEarned) { adoptCloud(data, rev, label); return true; }
+    syncPush(true);
+    return false;
+  }
+  function syncPush(force, keepalive) {
+    if (!LB_ON || !Sync.token || Sync.pending || (Sync.busy && !keepalive)) return Promise.resolve(false);
+    if (Sync.force) { force = true; Sync.force = false; }
+    S.last = Date.now();
+    if (!keepalive) Sync.busy = true;
+    return rpc('cloud_push', { p_token: Sync.token, p_data: S, p_base_rev: Sync.rev, p_force: !!force }, keepalive).then(function (res) {
+      Sync.busy = false;
+      if (res && res.ok) { Sync.rev = res.rev; Sync.at = Date.now(); Sync.error = ''; saveSync(); renderSync(); return true; }
+      if (res && !res.ok) resolveCloud(res.data, res.rev);
+      return false;
+    }).catch(function (e) { Sync.busy = false; if (!keepalive) syncFail(e); return false; });
+  }
+  // Checks the cloud for a newer save. Resolves true if it replaced this device's save (away time already credited).
+  function syncPull(label) {
+    if (!LB_ON || !Sync.token || Sync.pending) return Promise.resolve(false);
+    return rpc('cloud_pull', { p_token: Sync.token, p_have_rev: Sync.rev }).then(function (res) {
+      Sync.error = '';
+      if (res.rev !== Sync.rev && res.data) return resolveCloud(res.data, res.rev, label);
+      Sync.at = Date.now(); saveSync(); renderSync();
+      return false;
+    }).catch(function (e) { syncFail(e); return false; });
+  }
+  // Pull, but give up after a few seconds so a slow connection never holds up the game.
+  function syncPullQuick(label) {
+    return Promise.race([syncPull(label), new Promise(function (ok) { setTimeout(function () { ok(false); }, 4000); })]);
+  }
+  function syncAuth(kind) {
+    var u = ($('syncUser').value || '').trim().toLowerCase(), p = $('syncPass').value || '';
+    if (!/^[a-z0-9_.-]{3,24}$/.test(u)) { toast('Usernames are 3-24 letters, numbers, dots, dashes or underscores'); return; }
+    if (p.length < 6) { toast('Passwords need at least 6 characters'); return; }
+    if (Sync.busy) return;
+    Sync.busy = true; Sync.error = ''; renderSync();
+    var device = (navigator.platform || 'device').slice(0, 40);
+    rpc(kind === 'signup' ? 'cloud_signup' : 'cloud_login', { p_user: u, p_pass: p, p_device: device }).then(function (res) {
+      Sync.busy = false; Sync.user = res.username; Sync.token = res.token; Sync.rev = -1;
+      if (kind === 'signup' || !res.has_save) {
+        Sync.rev = res.rev; saveSync(); toast('☁️ Signed in as <b>' + esc(res.username) + '</b>. Uploading this base…');
+        syncPush(true);
+      } else {
+        // Both this device and the account have a save: let the player choose, suggesting the one further along.
+        Sync.pending = { rev: res.rev, earned: res.earned || 0, savedAt: res.saved_at }; saveSync();
+      }
+      renderSync();
+    }).catch(function (e) { Sync.busy = false; Sync.error = e.server ? e.message : 'Couldn\'t reach the server. Check your connection.'; renderSync(); });
+  }
+  function ago(ms) { var s = (Date.now() - ms) / 1000; return s < 60 ? 'just now' : dur(s) + ' ago'; }
+  function renderSync() {
+    var box = $('syncBox'); if (!box) return;
+    if (!LB_ON) { box.hidden = true; return; }
+    var h = '<span class="tag">Cloud save</span>';
+    if (!Sync.token) {
+      h += '<p>Sign in on each device to keep one base in sync automatically. Create an account here first, then sign in with the same username on your other device.</p>' +
+        '<label for="syncUser" class="tag">Username</label><input type="text" id="syncUser" maxlength="24" autocomplete="username" autocapitalize="none" spellcheck="false">' +
+        '<label for="syncPass" class="tag">Password</label><input type="password" id="syncPass" autocomplete="current-password">' +
+        '<div class="btnrow"><button class="btn primary" type="button" id="syncLogin"' + (Sync.busy ? ' disabled' : '') + '>Sign in</button>' +
+        '<button class="btn" type="button" id="syncSignup"' + (Sync.busy ? ' disabled' : '') + '>Create account</button></div>';
+    } else if (Sync.pending) {
+      var cloudMore = Sync.pending.earned > S.allEarned;
+      h += '<p>Signed in as <b>' + esc(Sync.user) + '</b>. Your account already has a saved base. Which one do you want to keep?</p>' +
+        '<p>☁️ Cloud: <b style="color:var(--brass)">' + money(Sync.pending.earned) + '</b> career funding' + (Sync.pending.savedAt ? ', saved ' + ago(Date.parse(Sync.pending.savedAt)) : '') + '<br>' +
+        '📱 This device: <b style="color:var(--brass)">' + money(S.allEarned) + '</b> career funding</p>' +
+        '<div class="btnrow"><button class="btn' + (cloudMore ? ' primary' : '') + '" type="button" id="syncUseCloud">Use cloud save</button>' +
+        '<button class="btn' + (cloudMore ? '' : ' primary') + '" type="button" id="syncUseLocal">Keep this device\'s</button></div>' +
+        '<p class="m">The other one is replaced.</p>';
+    } else {
+      h += '<p>Signed in as <b>' + esc(Sync.user) + '</b>. Progress syncs every minute and whenever you leave the app.</p>' +
+        '<p>' + (Sync.error ? esc(Sync.error) : Sync.busy ? 'Syncing…' : Sync.at ? 'Last synced ' + ago(Sync.at) + '.' : 'Not synced yet.') + '</p>' +
+        '<div class="btnrow"><button class="btn" type="button" id="syncNow"' + (Sync.busy ? ' disabled' : '') + '>Sync now</button>' +
+        '<button class="btn" type="button" id="syncLogout">Sign out</button></div>';
+    }
+    box.hidden = false; box.innerHTML = h;
+  }
+
   /* --- More tab --- */
   var resetArmed = 0;
   function renderMore() {
@@ -2132,7 +2300,8 @@ if (typeof module !== 'undefined') module.exports = Core;
       '<div class="setting"><span>Vibration</span><button class="toggle" type="button" role="switch" id="tHaptic" aria-checked="' + S.settings.haptics + '" aria-label="Vibration"></button></div>' +
       '<div class="card"><label for="nameInput" class="tag">Base name</label><input type="text" id="nameInput" maxlength="28" value="' + esc(S.baseName) + '"></div>' +
       (LB_ON && S.lbName ? '<div class="card"><label for="callsignInput" class="tag">Leaderboard callsign</label><input type="text" id="callsignInput" maxlength="20" value="' + esc(S.lbName) + '"></div>' : '') +
-      '<div class="card"><span class="tag">Backup</span><p>Copy this code to move your progress to another device.</p>' +
+      (LB_ON ? '<div class="card" id="syncBox"></div>' : '') +
+      '<div class="card"><span class="tag">Backup</span><p>Copy this code to keep a manual backup or move progress without an account.</p>' +
       '<textarea id="exportBox" readonly></textarea><div class="btnrow"><button class="btn" type="button" id="copyBtn">Copy code</button></div>' +
       '<label for="importBox" class="tag" style="margin-top:6px">Restore from code</label><textarea id="importBox" placeholder="Paste a backup code here"></textarea>' +
       '<div class="btnrow"><button class="btn" type="button" id="importBtn">Load backup</button></div></div>' +
@@ -2140,6 +2309,7 @@ if (typeof module !== 'undefined') module.exports = Core;
       '<div class="btnrow"><button class="btn danger" type="button" id="resetBtn">Reset all progress</button></div></div>' +
       '<p class="credit">Made for a brand-new Sailor waiting on a flight home.<br>Congratulations on graduating. Fair winds and following seas. ⚓<br>Version ' + GAME_VERSION + '</p>';
     $('exportBox').value = exportCode();
+    renderSync();
     syncNowPlaying();
   }
   function exportCode() { try { return btoa(unescape(encodeURIComponent(JSON.stringify(S)))); } catch (e) { return ''; } }
@@ -2159,7 +2329,14 @@ if (typeof module !== 'undefined') module.exports = Core;
     if (t.dataset.staff) {
       var stf = C.STAFF.filter(function (x) { return x.id === t.dataset.staff; })[0];
       var wasHired = (S.staff[stf.id] || 0) > 0;
-      if (C.buyStaff(S, stf)) { stat('hires', 1); afterBuy(); toast(stf.icon + ' ' + (wasHired ? 'Promoted' : 'Hired') + ' <b>' + stf.name + '</b> to level ' + S.staff[stf.id]); } else sfx.no();
+      var nb = S.staffMode === 'max' ? C.buyStaffMax(S, stf) : (C.buyStaff(S, stf) ? 1 : 0);
+      if (nb) { stat('hires', nb); afterBuy(); toast(stf.icon + ' ' + (wasHired ? 'Promoted' : 'Hired') + ' <b>' + stf.name + '</b> to level ' + S.staff[stf.id]); } else sfx.no();
+      return;
+    }
+    if (t.dataset.sm) { S.staffMode = t.dataset.sm === 'max' ? 'max' : 1; renderStaff(true); return; }
+    if (t.id === 'buyAllStaff') {
+      var hb = C.buyAllStaff(S);
+      if (hb) { stat('hires', hb); afterBuy(); toast('👥 Made <b>' + hb + '</b> staff hire' + (hb > 1 ? 's and promotions' : '')); } else sfx.no();
       return;
     }
     if (t.dataset.house) { if (C.buyHouse(S)) { stat('housing', 1); afterBuy(); toast('🛏️ Housing expanded to <b>Level ' + S.house + '</b> (' + C.houseName(S.house) + ')'); } else sfx.no(); return; }
@@ -2177,7 +2354,7 @@ if (typeof module !== 'undefined') module.exports = Core;
         prestigeArmed = 0;
         var gain = C.prestige(S); statMax('bestHandover', gain);
         D = C.derive(S); divisions = []; syncDivisions(); lastSig.build = ''; lastSig.upgrades = '';
-        sfx.promo(); buzz(true); save();
+        sfx.promo(); buzz(true); save(); syncPush(false);
         modal('🎖️', 'Change of Command', '<p>You handed over the base with honors and received <b style="color:var(--brass)">' + fmt(gain) + '</b> commendations.</p><p class="m">All output is now permanently +' + fmt(S.stars * 5) + '%. Time to build a new base.</p>', 'Take command', function () { setTab('build'); });
       } else { prestigeArmed = Date.now() + 4000; setTimeout(function () { lastSig.command = ''; if (currentTab === 'command') renderCommand(true); }, 4100); }
       renderCommand(true); return;
@@ -2191,6 +2368,19 @@ if (typeof module !== 'undefined') module.exports = Core;
       lbSubmit(false).then(function (ok) { if (!ok) toast('Saved your callsign. Your score will upload when you\'re back online.'); loadLB(true); });
       return;
     }
+    if (t.id === 'syncLogin' || t.id === 'syncSignup') { syncAuth(t.id === 'syncSignup' ? 'signup' : 'login'); return; }
+    if (t.id === 'syncNow') { syncPull().then(function (adopted) { if (!adopted) syncPush(false); }); return; }
+    if (t.id === 'syncLogout') { var tok = Sync.token; save(); syncPush(false).then(function () { rpc('cloud_logout', { p_token: tok }).catch(function () {}); }); syncSignedOut('Signed out of cloud save. This device keeps its progress.'); return; }
+    if (t.id === 'syncUseCloud' && Sync.pending) {
+      var pend = Sync.pending; Sync.busy = true; renderSync();
+      rpc('cloud_pull', { p_token: Sync.token, p_have_rev: -1 }).then(function (res) {
+        Sync.busy = false; Sync.pending = null;
+        if (res.data) adoptCloud(res.data, res.rev, 'Loaded your cloud save'); else { Sync.rev = res.rev; syncPush(true); }
+        renderSync();
+      }).catch(function (e) { Sync.busy = false; Sync.pending = pend; syncFail(e); });
+      return;
+    }
+    if (t.id === 'syncUseLocal' && Sync.pending) { Sync.rev = Sync.pending.rev; Sync.pending = null; saveSync(); syncPush(true); toast('☁️ Uploading this base to your account'); renderSync(); return; }
     if (t.id === 'lbRefresh') { lbSubmit(false).then(function () { loadLB(true); }); return; }
     if (t.dataset.lbsort) { lbSort = t.dataset.lbsort; renderLB(); loadLB(false); return; }
     if (t.id === 'tMusic') { S.settings.music = !S.settings.music; t.setAttribute('aria-checked', S.settings.music); applyMusic(); syncMute(); save(); return; }
@@ -2206,16 +2396,16 @@ if (typeof module !== 'undefined') module.exports = Core;
       try {
         var obj = JSON.parse(decodeURIComponent(escape(atob($('importBox').value.trim()))));
         if (typeof obj.money !== 'number') throw new Error('bad');
-        S = hydrate(obj); D = C.derive(S); initStats(); divisions = []; syncDivisions(); save();
-        toast('Backup loaded'); lastSig = { build: '', upgrades: '', command: '' }; renderMore(); refresh(true);
+        S = hydrate(obj); D = C.derive(S); initStats(); divisions = []; syncDivisions(); save(); Sync.force = true; syncPush(true);
+        toast('Backup loaded'); lastSig = { build: '', upgrades: '', command: '', staff: '' }; renderMore(); refresh(true);
       } catch (err) { toast('That code didn\'t work. Copy the whole backup code and try again.'); }
       return;
     }
     if (t.id === 'resetBtn') {
       if (resetArmed > Date.now()) {
         resetArmed = 0;
-        S = C.newState(); S.seenIntro = true; S.seenVersion = GAME_VERSION; D = C.derive(S); initStats(); divisions = []; syncDivisions(); save();
-        lastSig = { build: '', upgrades: '', command: '' }; toast('Progress erased. Welcome, Ensign.'); setTab('build'); refresh(true);
+        S = C.newState(); S.seenIntro = true; S.seenVersion = GAME_VERSION; D = C.derive(S); initStats(); divisions = []; syncDivisions(); save(); Sync.force = true; syncPush(true);
+        lastSig = { build: '', upgrades: '', command: '', staff: '' }; toast('Progress erased. Welcome, Ensign.'); setTab('build'); refresh(true);
       } else {
         resetArmed = Date.now() + 4000; t.classList.add('armed'); t.textContent = 'Tap again to erase everything';
         setTimeout(function () { if (t.isConnected) { t.classList.remove('armed'); t.textContent = 'Reset all progress'; } }, 4000);
@@ -2323,7 +2513,7 @@ if (typeof module !== 'undefined') module.exports = Core;
   function refresh(force) { renderHeader(); renderPane(force); }
 
   /* ---------- main loop ---------- */
-  var lastT = 0, uiAcc = 0, achAcc = 0, saveAcc = 0, lbAcc = 110;
+  var lastT = 0, uiAcc = 0, achAcc = 0, saveAcc = 0, lbAcc = 110, syncAcc = 0;
   function frame(now) {
     var dt = lastT ? (now - lastT) / 1000 : 0; lastT = now;
     if (dt > 2) { applyAway(dt); dt = 0; }
@@ -2343,15 +2533,22 @@ if (typeof module !== 'undefined') module.exports = Core;
     if (saveAcc > 5) { saveAcc = 0; save(); }
     lbAcc += dt;
     if (lbAcc > 120) { lbAcc = 0; lbSubmit(false); }
+    syncAcc += dt;
+    if (syncAcc > 60) { syncAcc = 0; syncPush(false); }
     requestAnimationFrame(frame);
   }
 
   var hiddenAt = 0;
   document.addEventListener('visibilitychange', function () {
-    if (document.hidden) { hiddenAt = Date.now(); save(); lbSubmit(true); Music.stop(); if (actx) { try { actx.suspend(); } catch (e) {} } }
+    if (document.hidden) { hiddenAt = Date.now(); save(); lbSubmit(true); syncPush(false, true); Music.stop(); if (actx) { try { actx.suspend(); } catch (e) {} } }
     else {
       if (S.settings.music) applyMusic();
-      if (hiddenAt) { var away = (Date.now() - hiddenAt) / 1000; hiddenAt = 0; lastT = 0; applyAway(away); }
+      if (hiddenAt) {
+        var away = (Date.now() - hiddenAt) / 1000; hiddenAt = 0; lastT = 0;
+        // Away long enough to have played on another device: check the cloud before crediting away time.
+        if (Sync.token && away > 20) syncPullQuick('Welcome back, Commander').then(function (adopted) { if (!adopted) applyAway(away); });
+        else applyAway(away);
+      }
     }
   });
   window.addEventListener('pagehide', save);
@@ -2376,7 +2573,8 @@ if (typeof module !== 'undefined') module.exports = Core;
       S.seenVersion = GAME_VERSION;
     } else {
       var away = (Date.now() - (S.last || Date.now())) / 1000;
-      applyAway(away, 'Welcome back, Commander');
+      if (Sync.token) syncPullQuick('Welcome back, Commander').then(function (adopted) { if (!adopted) applyAway(away, 'Welcome back, Commander'); });
+      else applyAway(away, 'Welcome back, Commander');
       if (S.seenVersion !== GAME_VERSION) {
         S.seenVersion = GAME_VERSION; save();
         setTimeout(function () { toast('⚓ <b>Updated to v' + GAME_VERSION + '</b><br>' + CHANGELOG, 6000); }, 800);
