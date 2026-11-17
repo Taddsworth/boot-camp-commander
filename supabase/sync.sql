@@ -88,9 +88,9 @@ $$;
 -- Returns the cloud save. Pass p_have_rev to skip the download when this device already has that revision.
 create or replace function public.cloud_pull(p_token text, p_have_rev bigint default -1) returns json
 language plpgsql security definer set search_path = public, extensions as $$
-declare a public.cloud_accounts%rowtype;
+declare acc uuid := public._cloud_account(p_token); a public.cloud_accounts%rowtype;
 begin
-  select * into a from public.cloud_accounts where id = public._cloud_account(p_token);
+  select * into a from public.cloud_accounts where id = acc;
   return json_build_object('rev', a.save_rev, 'earned', a.save_earned, 'saved_at', a.saved_at, 'username', a.username,
     'data', case when a.save_rev = p_have_rev then null else a.save_data end);
 end; $$;
