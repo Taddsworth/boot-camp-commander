@@ -2,6 +2,7 @@
 www/
 dist/
 tools/.core.js
+tools/.core-test.js
 android/app/build/
 android/build/
 android/.gradle/
