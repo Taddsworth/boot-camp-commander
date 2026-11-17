@@ -9,4 +9,5 @@ android/.gradle/
 android/local.properties
 ios/App/Pods/
 ios/App/App/public/
-.env.local
+.env*
+.claude
