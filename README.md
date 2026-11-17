@@ -21,7 +21,14 @@ Redeploy after changes: `npm run build`, then push the contents of `www/` to the
 - **Mail Call**: an envelope flies across the base every minute or two. Tap it for a care package, a Liberty Weekend (×7 output) or Hooyah (×15 taps).
 - **Ranks** from Ensign (O-1) to Fleet Admiral, based on career earnings.
 - **Change of Command** (prestige): hand over the base for permanent commendations (+5% each).
-- **26 ribbons** (achievements), +1% output each.
+- **Base Master Plan** (late game, unlocks at $10B career earnings): the fixed map becomes a tile grid you lay out yourself, around the parade ground.
+  - **Training partners** (13 pairs, e.g. Pool + Wet Trainer, Range + Battle Stations) give each other +25% per different partner touching. Touching the parade ground adds +15%.
+  - **Annexes** at 75 and 200 owned give a facility more tiles to reach partners. Without them only 9 of the 13 links fit (the grid can't hold odd cycles).
+  - **Housing blocks** are placed too. Noisy facilities (Range, Firefighting, Battle Stations) cost touching blocks 15% capacity unless a Green Space shields them.
+  - **Support structures** (9, rebuilt each command): Green Space, Galley, Fitness Center, Branch Clinic, Armory, Water Tower, Navy Exchange, Chapel, Headquarters. Each boosts its neighbours.
+  - **Land parcels** (permanent) grow the grid from 6×4 to 10×6.
+  - The planner (🗺️ Plan on the map) shows, for the selected building, the income change on every tile. The plan and land survive Change of Command.
+- **38 ribbons** (achievements), +1% output each.
 - **Staff**: hire and promote specialists one level at a time, with MAX, or with Hire all.
 - Offline progress for up to 12 hours (more with the Corpsman). Autosaves every 5 seconds.
 - **Cloud save** (More tab): create an account on one device and sign in on the others. The base syncs every minute and when you leave the app. If two devices disagree, the one with more career earnings wins.
@@ -32,7 +39,8 @@ Redeploy after changes: `npm run build`, then push the contents of `www/` to the
 | --- | --- |
 | `src/game.html` | The whole game (HTML/CSS/JS, no build tools needed) |
 | `tools/build.js` | Wraps the game into `www/index.html` for the native apps and syntax-checks the scripts |
-| `tools/sim.js` | Balance simulator: `node tools/sim.js <hours> <tapsPerSec>` (prints the tap share of income) |
+| `tools/sim.js` | Balance simulator: `node tools/sim.js <hours> <tapsPerSec> [noplan]` (prints the tap share of income; the plan is laid out by greedy auto-placement unless `noplan`) |
+| `tools/plan-test.js` | Master Plan logic tests: `npm test` (add `--search` for the max-links search) |
 | `supabase/schema.sql` | Leaderboard table and functions |
 | `supabase/sync.sql` | Cloud save accounts and functions. Run once in the Supabase SQL editor |
 | `android/`, `ios/` | Capacitor native projects |
