@@ -8,14 +8,14 @@ const C = require(coreFile);
 
 const HOURS = +process.argv[2] || 4, TAPS = +(process.argv[3] ?? 1);
 const s = C.newState(); let d = C.derive(s);
-const milestones = [1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 1e12]; let mi = 0, capped = 0;
+const milestones = [1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 1e12, 1e13, 1e14, 1e15, 1e16, 1e18, 1e20, 1e25]; let mi = 0, capped = 0, tapM = 0, pasM = 0;
 const mps = dd => C.baseThroughput(dd) * dd.pay;
 const value = (st, dd) => mps(dd) + C.tapGrads(st, dd) * dd.pay * TAPS;
 const clone = st => ({ ...st, fac: { ...st.fac }, ups: { ...st.ups }, ach: { ...st.ach }, staff: { ...(st.staff || {}) }, boosts: [] });
 
 for (let t = 0; t < HOURS * 3600; t++) {
-  for (let k = 0; k < TAPS; k++) C.tap(s, d);
-  C.tick(s, d, 1);
+  for (let k = 0; k < TAPS; k++) tapM += C.tap(s, d);
+  { const b = s.runEarned; C.tick(s, d, 1); pasM += s.runEarned - b; }
   if (d.training > d.capacity) capped++;
   for (let guard = 0; guard < 40; guard++) {
     const base = value(s, d); let best = null;
@@ -38,8 +38,8 @@ for (let t = 0; t < HOURS * 3600; t++) {
     s.money -= best.cost; best.apply(s); C.checkAch(s); d = C.derive(s);
   }
   while (mi < milestones.length && s.runEarned >= milestones[mi]) {
-    console.log(`$${milestones[mi].toExponential(0)} at ${(t / 60).toFixed(1)} min | $/s=${mps(d).toExponential(2)} house=${s.house} fac=${JSON.stringify(s.fac)}`);
+    console.log(`$${milestones[mi].toExponential(0)} at ${(t / 60).toFixed(1)} min | $/s=${mps(d).toExponential(2)} tap/s=${(C.tapGrads(s, d) * d.pay * TAPS).toExponential(2)} tapShare=${(100 * tapM / (tapM + pasM)).toFixed(0)}% house=${s.house} fac=${JSON.stringify(s.fac)}`);
     mi++;
   }
 }
-console.log('final', { earned: s.runEarned.toExponential(2), house: s.house, ups: Object.keys(s.ups).length, starsPending: C.starsPending(s), cappedPct: (100 * capped / (HOURS * 3600)).toFixed(0) + '%' });
+console.log('final', { earned: s.runEarned.toExponential(2), house: s.house, ups: Object.keys(s.ups).length, starsPending: C.starsPending(s), tapSharePct: (100 * tapM / (tapM + pasM)).toFixed(0) + '%', cappedPct: (100 * capped / (HOURS * 3600)).toFixed(0) + '%' });

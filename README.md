@@ -15,13 +15,16 @@ Redeploy after changes: `npm run build`, then push the contents of `www/` to the
 
 - **Tap the base map** to train recruits by hand.
 - **Training facilities** (10 of them, from the Drill Hall up to the Recruit Command Academy) graduate recruits every second.
+- **Esprit de corps**: every unit of a facility makes that whole line 5% better, so income compounds as you build.
 - **Recruit Housing** caps throughput. Trainees beyond capacity don't graduate, so expand housing as you grow (Tents → Quonset Huts → Barracks → Recruit Ships → … → Floating City).
 - **Upgrades**: facility boosts, federal contracts (more pay per graduate), drill upgrades for tapping, housing and Mail Call perks.
 - **Mail Call**: an envelope flies across the base every minute or two. Tap it for a care package, a Liberty Weekend (×7 output) or Hooyah (×15 taps).
 - **Ranks** from Ensign (O-1) to Fleet Admiral, based on career earnings.
 - **Change of Command** (prestige): hand over the base for permanent commendations (+5% each).
 - **26 ribbons** (achievements), +1% output each.
-- Offline progress for up to 12 hours. Autosaves every 5 seconds.
+- **Staff**: hire and promote specialists one level at a time, with MAX, or with Hire all.
+- Offline progress for up to 12 hours (more with the Corpsman). Autosaves every 5 seconds.
+- **Cloud save** (More tab): create an account on one device and sign in on the others. The base syncs every minute and when you leave the app. If two devices disagree, the one with more career earnings wins.
 
 ## Project layout
 
@@ -29,7 +32,9 @@ Redeploy after changes: `npm run build`, then push the contents of `www/` to the
 | --- | --- |
 | `src/game.html` | The whole game (HTML/CSS/JS, no build tools needed) |
 | `tools/build.js` | Wraps the game into `www/index.html` for the native apps and syntax-checks the scripts |
-| `tools/sim.js` | Balance simulator: `node tools/sim.js <hours> <tapsPerSec>` |
+| `tools/sim.js` | Balance simulator: `node tools/sim.js <hours> <tapsPerSec>` (prints the tap share of income) |
+| `supabase/schema.sql` | Leaderboard table and functions |
+| `supabase/sync.sql` | Cloud save accounts and functions. Run once in the Supabase SQL editor |
 | `android/`, `ios/` | Capacitor native projects |
 
 ## Building
